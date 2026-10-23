@@ -1,0 +1,3642 @@
+{
+  "status" : "success",
+  "data" : {
+    "resultType" : "matrix",
+    "result" : [ {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "container_label_desktop_docker_io_binds_0_Source" : "//var/run/docker.sock",
+        "container_label_desktop_docker_io_binds_0_SourceKind" : "hostFile",
+        "container_label_desktop_docker_io_binds_0_Target" : "/var/run/docker.sock",
+        "container_label_desktop_docker_io_ports_8080_tcp" : "0.0.0.0:0",
+        "container_label_org_testcontainers" : "true",
+        "container_label_org_testcontainers_lang" : "java",
+        "container_label_org_testcontainers_ryuk" : "true",
+        "container_label_org_testcontainers_version" : "1.21.3",
+        "cpu" : "cpu00",
+        "id" : "/docker/a2ee949511e22051248330d0ae23822ba49457944ea3d1d5a6f09960deb4b3d3",
+        "image" : "testcontainers/ryuk:0.12.0",
+        "instance" : "localhost",
+        "job" : "cadvisor",
+        "name" : "testcontainers-ryuk-97b5b91e-a27a-4402-afed-24a24de0e776"
+      },
+      "values" : [ [ 1792776085, "0.0226926" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "container_label_desktop_docker_io_binds_0_Source" : "//var/run/docker.sock",
+        "container_label_desktop_docker_io_binds_0_SourceKind" : "hostFile",
+        "container_label_desktop_docker_io_binds_0_Target" : "/var/run/docker.sock",
+        "container_label_desktop_docker_io_ports_8080_tcp" : "0.0.0.0:0",
+        "container_label_org_testcontainers" : "true",
+        "container_label_org_testcontainers_lang" : "java",
+        "container_label_org_testcontainers_ryuk" : "true",
+        "container_label_org_testcontainers_version" : "1.21.3",
+        "cpu" : "cpu01",
+        "id" : "/docker/a2ee949511e22051248330d0ae23822ba49457944ea3d1d5a6f09960deb4b3d3",
+        "image" : "testcontainers/ryuk:0.12.0",
+        "instance" : "localhost",
+        "job" : "cadvisor",
+        "name" : "testcontainers-ryuk-97b5b91e-a27a-4402-afed-24a24de0e776"
+      },
+      "values" : [ [ 1792776085, "0.0000441" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "container_label_desktop_docker_io_binds_0_Source" : "//var/run/docker.sock",
+        "container_label_desktop_docker_io_binds_0_SourceKind" : "hostFile",
+        "container_label_desktop_docker_io_binds_0_Target" : "/var/run/docker.sock",
+        "container_label_desktop_docker_io_ports_8080_tcp" : "0.0.0.0:0",
+        "container_label_org_testcontainers" : "true",
+        "container_label_org_testcontainers_lang" : "java",
+        "container_label_org_testcontainers_ryuk" : "true",
+        "container_label_org_testcontainers_version" : "1.21.3",
+        "cpu" : "cpu02",
+        "id" : "/docker/a2ee949511e22051248330d0ae23822ba49457944ea3d1d5a6f09960deb4b3d3",
+        "image" : "testcontainers/ryuk:0.12.0",
+        "instance" : "localhost",
+        "job" : "cadvisor",
+        "name" : "testcontainers-ryuk-97b5b91e-a27a-4402-afed-24a24de0e776"
+      },
+      "values" : [ [ 1792776085, "0.0002417" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "container_label_desktop_docker_io_binds_0_Source" : "//var/run/docker.sock",
+        "container_label_desktop_docker_io_binds_0_SourceKind" : "hostFile",
+        "container_label_desktop_docker_io_binds_0_Target" : "/var/run/docker.sock",
+        "container_label_desktop_docker_io_ports_8080_tcp" : "0.0.0.0:0",
+        "container_label_org_testcontainers" : "true",
+        "container_label_org_testcontainers_lang" : "java",
+        "container_label_org_testcontainers_ryuk" : "true",
+        "container_label_org_testcontainers_version" : "1.21.3",
+        "cpu" : "cpu03",
+        "id" : "/docker/a2ee949511e22051248330d0ae23822ba49457944ea3d1d5a6f09960deb4b3d3",
+        "image" : "testcontainers/ryuk:0.12.0",
+        "instance" : "localhost",
+        "job" : "cadvisor",
+        "name" : "testcontainers-ryuk-97b5b91e-a27a-4402-afed-24a24de0e776"
+      },
+      "values" : [ [ 1792776085, "0.0005277" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "container_label_desktop_docker_io_binds_0_Source" : "//var/run/docker.sock",
+        "container_label_desktop_docker_io_binds_0_SourceKind" : "hostFile",
+        "container_label_desktop_docker_io_binds_0_Target" : "/var/run/docker.sock",
+        "container_label_desktop_docker_io_ports_8080_tcp" : "0.0.0.0:0",
+        "container_label_org_testcontainers" : "true",
+        "container_label_org_testcontainers_lang" : "java",
+        "container_label_org_testcontainers_ryuk" : "true",
+        "container_label_org_testcontainers_version" : "1.21.3",
+        "cpu" : "cpu04",
+        "id" : "/docker/a2ee949511e22051248330d0ae23822ba49457944ea3d1d5a6f09960deb4b3d3",
+        "image" : "testcontainers/ryuk:0.12.0",
+        "instance" : "localhost",
+        "job" : "cadvisor",
+        "name" : "testcontainers-ryuk-97b5b91e-a27a-4402-afed-24a24de0e776"
+      },
+      "values" : [ [ 1792776085, "0.0159655" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "container_label_desktop_docker_io_binds_0_Source" : "//var/run/docker.sock",
+        "container_label_desktop_docker_io_binds_0_SourceKind" : "hostFile",
+        "container_label_desktop_docker_io_binds_0_Target" : "/var/run/docker.sock",
+        "container_label_desktop_docker_io_ports_8080_tcp" : "0.0.0.0:0",
+        "container_label_org_testcontainers" : "true",
+        "container_label_org_testcontainers_lang" : "java",
+        "container_label_org_testcontainers_ryuk" : "true",
+        "container_label_org_testcontainers_version" : "1.21.3",
+        "cpu" : "cpu05",
+        "id" : "/docker/a2ee949511e22051248330d0ae23822ba49457944ea3d1d5a6f09960deb4b3d3",
+        "image" : "testcontainers/ryuk:0.12.0",
+        "instance" : "localhost",
+        "job" : "cadvisor",
+        "name" : "testcontainers-ryuk-97b5b91e-a27a-4402-afed-24a24de0e776"
+      },
+      "values" : [ [ 1792776085, "0.0010098" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "container_label_desktop_docker_io_binds_0_Source" : "//var/run/docker.sock",
+        "container_label_desktop_docker_io_binds_0_SourceKind" : "hostFile",
+        "container_label_desktop_docker_io_binds_0_Target" : "/var/run/docker.sock",
+        "container_label_desktop_docker_io_ports_8080_tcp" : "0.0.0.0:0",
+        "container_label_org_testcontainers" : "true",
+        "container_label_org_testcontainers_lang" : "java",
+        "container_label_org_testcontainers_ryuk" : "true",
+        "container_label_org_testcontainers_version" : "1.21.3",
+        "cpu" : "cpu06",
+        "id" : "/docker/a2ee949511e22051248330d0ae23822ba49457944ea3d1d5a6f09960deb4b3d3",
+        "image" : "testcontainers/ryuk:0.12.0",
+        "instance" : "localhost",
+        "job" : "cadvisor",
+        "name" : "testcontainers-ryuk-97b5b91e-a27a-4402-afed-24a24de0e776"
+      },
+      "values" : [ [ 1792776085, "0.0035969" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "container_label_desktop_docker_io_binds_0_Source" : "//var/run/docker.sock",
+        "container_label_desktop_docker_io_binds_0_SourceKind" : "hostFile",
+        "container_label_desktop_docker_io_binds_0_Target" : "/var/run/docker.sock",
+        "container_label_desktop_docker_io_ports_8080_tcp" : "0.0.0.0:0",
+        "container_label_org_testcontainers" : "true",
+        "container_label_org_testcontainers_lang" : "java",
+        "container_label_org_testcontainers_ryuk" : "true",
+        "container_label_org_testcontainers_version" : "1.21.3",
+        "cpu" : "cpu07",
+        "id" : "/docker/a2ee949511e22051248330d0ae23822ba49457944ea3d1d5a6f09960deb4b3d3",
+        "image" : "testcontainers/ryuk:0.12.0",
+        "instance" : "localhost",
+        "job" : "cadvisor",
+        "name" : "testcontainers-ryuk-97b5b91e-a27a-4402-afed-24a24de0e776"
+      },
+      "values" : [ [ 1792776085, "0.0409897" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "container_label_desktop_docker_io_binds_0_Source" : "//var/run/docker.sock",
+        "container_label_desktop_docker_io_binds_0_SourceKind" : "hostFile",
+        "container_label_desktop_docker_io_binds_0_Target" : "/var/run/docker.sock",
+        "container_label_desktop_docker_io_ports_8080_tcp" : "0.0.0.0:0",
+        "container_label_org_testcontainers" : "true",
+        "container_label_org_testcontainers_lang" : "java",
+        "container_label_org_testcontainers_ryuk" : "true",
+        "container_label_org_testcontainers_version" : "1.21.3",
+        "cpu" : "cpu08",
+        "id" : "/docker/a2ee949511e22051248330d0ae23822ba49457944ea3d1d5a6f09960deb4b3d3",
+        "image" : "testcontainers/ryuk:0.12.0",
+        "instance" : "localhost",
+        "job" : "cadvisor",
+        "name" : "testcontainers-ryuk-97b5b91e-a27a-4402-afed-24a24de0e776"
+      },
+      "values" : [ [ 1792776085, "0.0003803" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "container_label_desktop_docker_io_binds_0_Source" : "//var/run/docker.sock",
+        "container_label_desktop_docker_io_binds_0_SourceKind" : "hostFile",
+        "container_label_desktop_docker_io_binds_0_Target" : "/var/run/docker.sock",
+        "container_label_desktop_docker_io_ports_8080_tcp" : "0.0.0.0:0",
+        "container_label_org_testcontainers" : "true",
+        "container_label_org_testcontainers_lang" : "java",
+        "container_label_org_testcontainers_ryuk" : "true",
+        "container_label_org_testcontainers_version" : "1.21.3",
+        "cpu" : "cpu10",
+        "id" : "/docker/a2ee949511e22051248330d0ae23822ba49457944ea3d1d5a6f09960deb4b3d3",
+        "image" : "testcontainers/ryuk:0.12.0",
+        "instance" : "localhost",
+        "job" : "cadvisor",
+        "name" : "testcontainers-ryuk-97b5b91e-a27a-4402-afed-24a24de0e776"
+      },
+      "values" : [ [ 1792776085, "0.0008346" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "container_label_desktop_docker_io_binds_0_Source" : "//var/run/docker.sock",
+        "container_label_desktop_docker_io_binds_0_SourceKind" : "hostFile",
+        "container_label_desktop_docker_io_binds_0_Target" : "/var/run/docker.sock",
+        "container_label_desktop_docker_io_ports_8080_tcp" : "0.0.0.0:0",
+        "container_label_org_testcontainers" : "true",
+        "container_label_org_testcontainers_lang" : "java",
+        "container_label_org_testcontainers_ryuk" : "true",
+        "container_label_org_testcontainers_version" : "1.21.3",
+        "cpu" : "cpu11",
+        "id" : "/docker/a2ee949511e22051248330d0ae23822ba49457944ea3d1d5a6f09960deb4b3d3",
+        "image" : "testcontainers/ryuk:0.12.0",
+        "instance" : "localhost",
+        "job" : "cadvisor",
+        "name" : "testcontainers-ryuk-97b5b91e-a27a-4402-afed-24a24de0e776"
+      },
+      "values" : [ [ 1792776085, "0.0052007" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "container_label_desktop_docker_io_binds_0_Source" : "/var/run",
+        "container_label_desktop_docker_io_binds_0_SourceKind" : "hostFile",
+        "container_label_desktop_docker_io_binds_0_Target" : "/var/run",
+        "container_label_desktop_docker_io_binds_1_Source" : "/sys",
+        "container_label_desktop_docker_io_binds_1_SourceKind" : "hostFile",
+        "container_label_desktop_docker_io_binds_1_Target" : "/sys",
+        "container_label_desktop_docker_io_binds_2_Source" : "/var/lib/docker",
+        "container_label_desktop_docker_io_binds_2_SourceKind" : "hostFile",
+        "container_label_desktop_docker_io_binds_2_Target" : "/var/lib/docker",
+        "container_label_desktop_docker_io_ports_8080_tcp" : "0.0.0.0:0",
+        "container_label_org_testcontainers" : "true",
+        "container_label_org_testcontainers_lang" : "java",
+        "container_label_org_testcontainers_sessionId" : "97b5b91e-a27a-4402-afed-24a24de0e776",
+        "container_label_org_testcontainers_version" : "1.21.3",
+        "cpu" : "cpu00",
+        "id" : "/docker/44a0d5903ca72a9bc07b4ddcfc90dd774d85ee772a9dd890b8f94130cecabab3",
+        "image" : "gcr.io/cadvisor/cadvisor:v0.49.1",
+        "instance" : "localhost",
+        "job" : "cadvisor",
+        "name" : "vibrant_darwin"
+      },
+      "values" : [ [ 1792776085, "0.0583918" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "container_label_desktop_docker_io_binds_0_Source" : "/var/run",
+        "container_label_desktop_docker_io_binds_0_SourceKind" : "hostFile",
+        "container_label_desktop_docker_io_binds_0_Target" : "/var/run",
+        "container_label_desktop_docker_io_binds_1_Source" : "/sys",
+        "container_label_desktop_docker_io_binds_1_SourceKind" : "hostFile",
+        "container_label_desktop_docker_io_binds_1_Target" : "/sys",
+        "container_label_desktop_docker_io_binds_2_Source" : "/var/lib/docker",
+        "container_label_desktop_docker_io_binds_2_SourceKind" : "hostFile",
+        "container_label_desktop_docker_io_binds_2_Target" : "/var/lib/docker",
+        "container_label_desktop_docker_io_ports_8080_tcp" : "0.0.0.0:0",
+        "container_label_org_testcontainers" : "true",
+        "container_label_org_testcontainers_lang" : "java",
+        "container_label_org_testcontainers_sessionId" : "97b5b91e-a27a-4402-afed-24a24de0e776",
+        "container_label_org_testcontainers_version" : "1.21.3",
+        "cpu" : "cpu01",
+        "id" : "/docker/44a0d5903ca72a9bc07b4ddcfc90dd774d85ee772a9dd890b8f94130cecabab3",
+        "image" : "gcr.io/cadvisor/cadvisor:v0.49.1",
+        "instance" : "localhost",
+        "job" : "cadvisor",
+        "name" : "vibrant_darwin"
+      },
+      "values" : [ [ 1792776085, "0.0662892" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "container_label_desktop_docker_io_binds_0_Source" : "/var/run",
+        "container_label_desktop_docker_io_binds_0_SourceKind" : "hostFile",
+        "container_label_desktop_docker_io_binds_0_Target" : "/var/run",
+        "container_label_desktop_docker_io_binds_1_Source" : "/sys",
+        "container_label_desktop_docker_io_binds_1_SourceKind" : "hostFile",
+        "container_label_desktop_docker_io_binds_1_Target" : "/sys",
+        "container_label_desktop_docker_io_binds_2_Source" : "/var/lib/docker",
+        "container_label_desktop_docker_io_binds_2_SourceKind" : "hostFile",
+        "container_label_desktop_docker_io_binds_2_Target" : "/var/lib/docker",
+        "container_label_desktop_docker_io_ports_8080_tcp" : "0.0.0.0:0",
+        "container_label_org_testcontainers" : "true",
+        "container_label_org_testcontainers_lang" : "java",
+        "container_label_org_testcontainers_sessionId" : "97b5b91e-a27a-4402-afed-24a24de0e776",
+        "container_label_org_testcontainers_version" : "1.21.3",
+        "cpu" : "cpu02",
+        "id" : "/docker/44a0d5903ca72a9bc07b4ddcfc90dd774d85ee772a9dd890b8f94130cecabab3",
+        "image" : "gcr.io/cadvisor/cadvisor:v0.49.1",
+        "instance" : "localhost",
+        "job" : "cadvisor",
+        "name" : "vibrant_darwin"
+      },
+      "values" : [ [ 1792776085, "0.0842164" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "container_label_desktop_docker_io_binds_0_Source" : "/var/run",
+        "container_label_desktop_docker_io_binds_0_SourceKind" : "hostFile",
+        "container_label_desktop_docker_io_binds_0_Target" : "/var/run",
+        "container_label_desktop_docker_io_binds_1_Source" : "/sys",
+        "container_label_desktop_docker_io_binds_1_SourceKind" : "hostFile",
+        "container_label_desktop_docker_io_binds_1_Target" : "/sys",
+        "container_label_desktop_docker_io_binds_2_Source" : "/var/lib/docker",
+        "container_label_desktop_docker_io_binds_2_SourceKind" : "hostFile",
+        "container_label_desktop_docker_io_binds_2_Target" : "/var/lib/docker",
+        "container_label_desktop_docker_io_ports_8080_tcp" : "0.0.0.0:0",
+        "container_label_org_testcontainers" : "true",
+        "container_label_org_testcontainers_lang" : "java",
+        "container_label_org_testcontainers_sessionId" : "97b5b91e-a27a-4402-afed-24a24de0e776",
+        "container_label_org_testcontainers_version" : "1.21.3",
+        "cpu" : "cpu03",
+        "id" : "/docker/44a0d5903ca72a9bc07b4ddcfc90dd774d85ee772a9dd890b8f94130cecabab3",
+        "image" : "gcr.io/cadvisor/cadvisor:v0.49.1",
+        "instance" : "localhost",
+        "job" : "cadvisor",
+        "name" : "vibrant_darwin"
+      },
+      "values" : [ [ 1792776085, "0.1015901" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "container_label_desktop_docker_io_binds_0_Source" : "/var/run",
+        "container_label_desktop_docker_io_binds_0_SourceKind" : "hostFile",
+        "container_label_desktop_docker_io_binds_0_Target" : "/var/run",
+        "container_label_desktop_docker_io_binds_1_Source" : "/sys",
+        "container_label_desktop_docker_io_binds_1_SourceKind" : "hostFile",
+        "container_label_desktop_docker_io_binds_1_Target" : "/sys",
+        "container_label_desktop_docker_io_binds_2_Source" : "/var/lib/docker",
+        "container_label_desktop_docker_io_binds_2_SourceKind" : "hostFile",
+        "container_label_desktop_docker_io_binds_2_Target" : "/var/lib/docker",
+        "container_label_desktop_docker_io_ports_8080_tcp" : "0.0.0.0:0",
+        "container_label_org_testcontainers" : "true",
+        "container_label_org_testcontainers_lang" : "java",
+        "container_label_org_testcontainers_sessionId" : "97b5b91e-a27a-4402-afed-24a24de0e776",
+        "container_label_org_testcontainers_version" : "1.21.3",
+        "cpu" : "cpu04",
+        "id" : "/docker/44a0d5903ca72a9bc07b4ddcfc90dd774d85ee772a9dd890b8f94130cecabab3",
+        "image" : "gcr.io/cadvisor/cadvisor:v0.49.1",
+        "instance" : "localhost",
+        "job" : "cadvisor",
+        "name" : "vibrant_darwin"
+      },
+      "values" : [ [ 1792776085, "0.054045" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "container_label_desktop_docker_io_binds_0_Source" : "/var/run",
+        "container_label_desktop_docker_io_binds_0_SourceKind" : "hostFile",
+        "container_label_desktop_docker_io_binds_0_Target" : "/var/run",
+        "container_label_desktop_docker_io_binds_1_Source" : "/sys",
+        "container_label_desktop_docker_io_binds_1_SourceKind" : "hostFile",
+        "container_label_desktop_docker_io_binds_1_Target" : "/sys",
+        "container_label_desktop_docker_io_binds_2_Source" : "/var/lib/docker",
+        "container_label_desktop_docker_io_binds_2_SourceKind" : "hostFile",
+        "container_label_desktop_docker_io_binds_2_Target" : "/var/lib/docker",
+        "container_label_desktop_docker_io_ports_8080_tcp" : "0.0.0.0:0",
+        "container_label_org_testcontainers" : "true",
+        "container_label_org_testcontainers_lang" : "java",
+        "container_label_org_testcontainers_sessionId" : "97b5b91e-a27a-4402-afed-24a24de0e776",
+        "container_label_org_testcontainers_version" : "1.21.3",
+        "cpu" : "cpu05",
+        "id" : "/docker/44a0d5903ca72a9bc07b4ddcfc90dd774d85ee772a9dd890b8f94130cecabab3",
+        "image" : "gcr.io/cadvisor/cadvisor:v0.49.1",
+        "instance" : "localhost",
+        "job" : "cadvisor",
+        "name" : "vibrant_darwin"
+      },
+      "values" : [ [ 1792776085, "0.0624056" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "container_label_desktop_docker_io_binds_0_Source" : "/var/run",
+        "container_label_desktop_docker_io_binds_0_SourceKind" : "hostFile",
+        "container_label_desktop_docker_io_binds_0_Target" : "/var/run",
+        "container_label_desktop_docker_io_binds_1_Source" : "/sys",
+        "container_label_desktop_docker_io_binds_1_SourceKind" : "hostFile",
+        "container_label_desktop_docker_io_binds_1_Target" : "/sys",
+        "container_label_desktop_docker_io_binds_2_Source" : "/var/lib/docker",
+        "container_label_desktop_docker_io_binds_2_SourceKind" : "hostFile",
+        "container_label_desktop_docker_io_binds_2_Target" : "/var/lib/docker",
+        "container_label_desktop_docker_io_ports_8080_tcp" : "0.0.0.0:0",
+        "container_label_org_testcontainers" : "true",
+        "container_label_org_testcontainers_lang" : "java",
+        "container_label_org_testcontainers_sessionId" : "97b5b91e-a27a-4402-afed-24a24de0e776",
+        "container_label_org_testcontainers_version" : "1.21.3",
+        "cpu" : "cpu06",
+        "id" : "/docker/44a0d5903ca72a9bc07b4ddcfc90dd774d85ee772a9dd890b8f94130cecabab3",
+        "image" : "gcr.io/cadvisor/cadvisor:v0.49.1",
+        "instance" : "localhost",
+        "job" : "cadvisor",
+        "name" : "vibrant_darwin"
+      },
+      "values" : [ [ 1792776085, "0.0515959" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "container_label_desktop_docker_io_binds_0_Source" : "/var/run",
+        "container_label_desktop_docker_io_binds_0_SourceKind" : "hostFile",
+        "container_label_desktop_docker_io_binds_0_Target" : "/var/run",
+        "container_label_desktop_docker_io_binds_1_Source" : "/sys",
+        "container_label_desktop_docker_io_binds_1_SourceKind" : "hostFile",
+        "container_label_desktop_docker_io_binds_1_Target" : "/sys",
+        "container_label_desktop_docker_io_binds_2_Source" : "/var/lib/docker",
+        "container_label_desktop_docker_io_binds_2_SourceKind" : "hostFile",
+        "container_label_desktop_docker_io_binds_2_Target" : "/var/lib/docker",
+        "container_label_desktop_docker_io_ports_8080_tcp" : "0.0.0.0:0",
+        "container_label_org_testcontainers" : "true",
+        "container_label_org_testcontainers_lang" : "java",
+        "container_label_org_testcontainers_sessionId" : "97b5b91e-a27a-4402-afed-24a24de0e776",
+        "container_label_org_testcontainers_version" : "1.21.3",
+        "cpu" : "cpu07",
+        "id" : "/docker/44a0d5903ca72a9bc07b4ddcfc90dd774d85ee772a9dd890b8f94130cecabab3",
+        "image" : "gcr.io/cadvisor/cadvisor:v0.49.1",
+        "instance" : "localhost",
+        "job" : "cadvisor",
+        "name" : "vibrant_darwin"
+      },
+      "values" : [ [ 1792776085, "0.0150432" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "container_label_desktop_docker_io_binds_0_Source" : "/var/run",
+        "container_label_desktop_docker_io_binds_0_SourceKind" : "hostFile",
+        "container_label_desktop_docker_io_binds_0_Target" : "/var/run",
+        "container_label_desktop_docker_io_binds_1_Source" : "/sys",
+        "container_label_desktop_docker_io_binds_1_SourceKind" : "hostFile",
+        "container_label_desktop_docker_io_binds_1_Target" : "/sys",
+        "container_label_desktop_docker_io_binds_2_Source" : "/var/lib/docker",
+        "container_label_desktop_docker_io_binds_2_SourceKind" : "hostFile",
+        "container_label_desktop_docker_io_binds_2_Target" : "/var/lib/docker",
+        "container_label_desktop_docker_io_ports_8080_tcp" : "0.0.0.0:0",
+        "container_label_org_testcontainers" : "true",
+        "container_label_org_testcontainers_lang" : "java",
+        "container_label_org_testcontainers_sessionId" : "97b5b91e-a27a-4402-afed-24a24de0e776",
+        "container_label_org_testcontainers_version" : "1.21.3",
+        "cpu" : "cpu08",
+        "id" : "/docker/44a0d5903ca72a9bc07b4ddcfc90dd774d85ee772a9dd890b8f94130cecabab3",
+        "image" : "gcr.io/cadvisor/cadvisor:v0.49.1",
+        "instance" : "localhost",
+        "job" : "cadvisor",
+        "name" : "vibrant_darwin"
+      },
+      "values" : [ [ 1792776085, "0.0560552" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "container_label_desktop_docker_io_binds_0_Source" : "/var/run",
+        "container_label_desktop_docker_io_binds_0_SourceKind" : "hostFile",
+        "container_label_desktop_docker_io_binds_0_Target" : "/var/run",
+        "container_label_desktop_docker_io_binds_1_Source" : "/sys",
+        "container_label_desktop_docker_io_binds_1_SourceKind" : "hostFile",
+        "container_label_desktop_docker_io_binds_1_Target" : "/sys",
+        "container_label_desktop_docker_io_binds_2_Source" : "/var/lib/docker",
+        "container_label_desktop_docker_io_binds_2_SourceKind" : "hostFile",
+        "container_label_desktop_docker_io_binds_2_Target" : "/var/lib/docker",
+        "container_label_desktop_docker_io_ports_8080_tcp" : "0.0.0.0:0",
+        "container_label_org_testcontainers" : "true",
+        "container_label_org_testcontainers_lang" : "java",
+        "container_label_org_testcontainers_sessionId" : "97b5b91e-a27a-4402-afed-24a24de0e776",
+        "container_label_org_testcontainers_version" : "1.21.3",
+        "cpu" : "cpu09",
+        "id" : "/docker/44a0d5903ca72a9bc07b4ddcfc90dd774d85ee772a9dd890b8f94130cecabab3",
+        "image" : "gcr.io/cadvisor/cadvisor:v0.49.1",
+        "instance" : "localhost",
+        "job" : "cadvisor",
+        "name" : "vibrant_darwin"
+      },
+      "values" : [ [ 1792776085, "0.0258292" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "container_label_desktop_docker_io_binds_0_Source" : "/var/run",
+        "container_label_desktop_docker_io_binds_0_SourceKind" : "hostFile",
+        "container_label_desktop_docker_io_binds_0_Target" : "/var/run",
+        "container_label_desktop_docker_io_binds_1_Source" : "/sys",
+        "container_label_desktop_docker_io_binds_1_SourceKind" : "hostFile",
+        "container_label_desktop_docker_io_binds_1_Target" : "/sys",
+        "container_label_desktop_docker_io_binds_2_Source" : "/var/lib/docker",
+        "container_label_desktop_docker_io_binds_2_SourceKind" : "hostFile",
+        "container_label_desktop_docker_io_binds_2_Target" : "/var/lib/docker",
+        "container_label_desktop_docker_io_ports_8080_tcp" : "0.0.0.0:0",
+        "container_label_org_testcontainers" : "true",
+        "container_label_org_testcontainers_lang" : "java",
+        "container_label_org_testcontainers_sessionId" : "97b5b91e-a27a-4402-afed-24a24de0e776",
+        "container_label_org_testcontainers_version" : "1.21.3",
+        "cpu" : "cpu10",
+        "id" : "/docker/44a0d5903ca72a9bc07b4ddcfc90dd774d85ee772a9dd890b8f94130cecabab3",
+        "image" : "gcr.io/cadvisor/cadvisor:v0.49.1",
+        "instance" : "localhost",
+        "job" : "cadvisor",
+        "name" : "vibrant_darwin"
+      },
+      "values" : [ [ 1792776085, "0.102627" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "container_label_desktop_docker_io_binds_0_Source" : "/var/run",
+        "container_label_desktop_docker_io_binds_0_SourceKind" : "hostFile",
+        "container_label_desktop_docker_io_binds_0_Target" : "/var/run",
+        "container_label_desktop_docker_io_binds_1_Source" : "/sys",
+        "container_label_desktop_docker_io_binds_1_SourceKind" : "hostFile",
+        "container_label_desktop_docker_io_binds_1_Target" : "/sys",
+        "container_label_desktop_docker_io_binds_2_Source" : "/var/lib/docker",
+        "container_label_desktop_docker_io_binds_2_SourceKind" : "hostFile",
+        "container_label_desktop_docker_io_binds_2_Target" : "/var/lib/docker",
+        "container_label_desktop_docker_io_ports_8080_tcp" : "0.0.0.0:0",
+        "container_label_org_testcontainers" : "true",
+        "container_label_org_testcontainers_lang" : "java",
+        "container_label_org_testcontainers_sessionId" : "97b5b91e-a27a-4402-afed-24a24de0e776",
+        "container_label_org_testcontainers_version" : "1.21.3",
+        "cpu" : "cpu11",
+        "id" : "/docker/44a0d5903ca72a9bc07b4ddcfc90dd774d85ee772a9dd890b8f94130cecabab3",
+        "image" : "gcr.io/cadvisor/cadvisor:v0.49.1",
+        "instance" : "localhost",
+        "job" : "cadvisor",
+        "name" : "vibrant_darwin"
+      },
+      "values" : [ [ 1792776085, "0.0334866" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "container_label_desktop_docker_io_ports_9090_tcp" : "0.0.0.0:0",
+        "container_label_io_prometheus_image_variant" : "busybox",
+        "container_label_maintainer" : "The Prometheus Authors <prometheus-developers@googlegroups.com>",
+        "container_label_org_opencontainers_image_authors" : "The Prometheus Authors",
+        "container_label_org_opencontainers_image_description" : "The Prometheus monitoring system and time series database",
+        "container_label_org_opencontainers_image_documentation" : "https://prometheus.io/docs",
+        "container_label_org_opencontainers_image_licenses" : "Apache License 2.0",
+        "container_label_org_opencontainers_image_source" : "https://github.com/prometheus/prometheus",
+        "container_label_org_opencontainers_image_title" : "Prometheus",
+        "container_label_org_opencontainers_image_url" : "https://github.com/prometheus/prometheus",
+        "container_label_org_opencontainers_image_vendor" : "Prometheus",
+        "container_label_org_testcontainers" : "true",
+        "container_label_org_testcontainers_lang" : "java",
+        "container_label_org_testcontainers_sessionId" : "97b5b91e-a27a-4402-afed-24a24de0e776",
+        "container_label_org_testcontainers_version" : "1.21.3",
+        "cpu" : "cpu00",
+        "id" : "/docker/18aebcc6fb0e42bed9b2653a1d5f45e1c411ecce2db8234cbe29a04207b1ff16",
+        "image" : "prom/prometheus:latest",
+        "instance" : "localhost",
+        "job" : "cadvisor",
+        "name" : "sad_chatterjee"
+      },
+      "values" : [ [ 1792776085, "0.0401583" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "container_label_desktop_docker_io_ports_9090_tcp" : "0.0.0.0:0",
+        "container_label_io_prometheus_image_variant" : "busybox",
+        "container_label_maintainer" : "The Prometheus Authors <prometheus-developers@googlegroups.com>",
+        "container_label_org_opencontainers_image_authors" : "The Prometheus Authors",
+        "container_label_org_opencontainers_image_description" : "The Prometheus monitoring system and time series database",
+        "container_label_org_opencontainers_image_documentation" : "https://prometheus.io/docs",
+        "container_label_org_opencontainers_image_licenses" : "Apache License 2.0",
+        "container_label_org_opencontainers_image_source" : "https://github.com/prometheus/prometheus",
+        "container_label_org_opencontainers_image_title" : "Prometheus",
+        "container_label_org_opencontainers_image_url" : "https://github.com/prometheus/prometheus",
+        "container_label_org_opencontainers_image_vendor" : "Prometheus",
+        "container_label_org_testcontainers" : "true",
+        "container_label_org_testcontainers_lang" : "java",
+        "container_label_org_testcontainers_sessionId" : "97b5b91e-a27a-4402-afed-24a24de0e776",
+        "container_label_org_testcontainers_version" : "1.21.3",
+        "cpu" : "cpu01",
+        "id" : "/docker/18aebcc6fb0e42bed9b2653a1d5f45e1c411ecce2db8234cbe29a04207b1ff16",
+        "image" : "prom/prometheus:latest",
+        "instance" : "localhost",
+        "job" : "cadvisor",
+        "name" : "sad_chatterjee"
+      },
+      "values" : [ [ 1792776085, "0.0503313" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "container_label_desktop_docker_io_ports_9090_tcp" : "0.0.0.0:0",
+        "container_label_io_prometheus_image_variant" : "busybox",
+        "container_label_maintainer" : "The Prometheus Authors <prometheus-developers@googlegroups.com>",
+        "container_label_org_opencontainers_image_authors" : "The Prometheus Authors",
+        "container_label_org_opencontainers_image_description" : "The Prometheus monitoring system and time series database",
+        "container_label_org_opencontainers_image_documentation" : "https://prometheus.io/docs",
+        "container_label_org_opencontainers_image_licenses" : "Apache License 2.0",
+        "container_label_org_opencontainers_image_source" : "https://github.com/prometheus/prometheus",
+        "container_label_org_opencontainers_image_title" : "Prometheus",
+        "container_label_org_opencontainers_image_url" : "https://github.com/prometheus/prometheus",
+        "container_label_org_opencontainers_image_vendor" : "Prometheus",
+        "container_label_org_testcontainers" : "true",
+        "container_label_org_testcontainers_lang" : "java",
+        "container_label_org_testcontainers_sessionId" : "97b5b91e-a27a-4402-afed-24a24de0e776",
+        "container_label_org_testcontainers_version" : "1.21.3",
+        "cpu" : "cpu02",
+        "id" : "/docker/18aebcc6fb0e42bed9b2653a1d5f45e1c411ecce2db8234cbe29a04207b1ff16",
+        "image" : "prom/prometheus:latest",
+        "instance" : "localhost",
+        "job" : "cadvisor",
+        "name" : "sad_chatterjee"
+      },
+      "values" : [ [ 1792776085, "0.1329277" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "container_label_desktop_docker_io_ports_9090_tcp" : "0.0.0.0:0",
+        "container_label_io_prometheus_image_variant" : "busybox",
+        "container_label_maintainer" : "The Prometheus Authors <prometheus-developers@googlegroups.com>",
+        "container_label_org_opencontainers_image_authors" : "The Prometheus Authors",
+        "container_label_org_opencontainers_image_description" : "The Prometheus monitoring system and time series database",
+        "container_label_org_opencontainers_image_documentation" : "https://prometheus.io/docs",
+        "container_label_org_opencontainers_image_licenses" : "Apache License 2.0",
+        "container_label_org_opencontainers_image_source" : "https://github.com/prometheus/prometheus",
+        "container_label_org_opencontainers_image_title" : "Prometheus",
+        "container_label_org_opencontainers_image_url" : "https://github.com/prometheus/prometheus",
+        "container_label_org_opencontainers_image_vendor" : "Prometheus",
+        "container_label_org_testcontainers" : "true",
+        "container_label_org_testcontainers_lang" : "java",
+        "container_label_org_testcontainers_sessionId" : "97b5b91e-a27a-4402-afed-24a24de0e776",
+        "container_label_org_testcontainers_version" : "1.21.3",
+        "cpu" : "cpu03",
+        "id" : "/docker/18aebcc6fb0e42bed9b2653a1d5f45e1c411ecce2db8234cbe29a04207b1ff16",
+        "image" : "prom/prometheus:latest",
+        "instance" : "localhost",
+        "job" : "cadvisor",
+        "name" : "sad_chatterjee"
+      },
+      "values" : [ [ 1792776085, "0.0928293" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "container_label_desktop_docker_io_ports_9090_tcp" : "0.0.0.0:0",
+        "container_label_io_prometheus_image_variant" : "busybox",
+        "container_label_maintainer" : "The Prometheus Authors <prometheus-developers@googlegroups.com>",
+        "container_label_org_opencontainers_image_authors" : "The Prometheus Authors",
+        "container_label_org_opencontainers_image_description" : "The Prometheus monitoring system and time series database",
+        "container_label_org_opencontainers_image_documentation" : "https://prometheus.io/docs",
+        "container_label_org_opencontainers_image_licenses" : "Apache License 2.0",
+        "container_label_org_opencontainers_image_source" : "https://github.com/prometheus/prometheus",
+        "container_label_org_opencontainers_image_title" : "Prometheus",
+        "container_label_org_opencontainers_image_url" : "https://github.com/prometheus/prometheus",
+        "container_label_org_opencontainers_image_vendor" : "Prometheus",
+        "container_label_org_testcontainers" : "true",
+        "container_label_org_testcontainers_lang" : "java",
+        "container_label_org_testcontainers_sessionId" : "97b5b91e-a27a-4402-afed-24a24de0e776",
+        "container_label_org_testcontainers_version" : "1.21.3",
+        "cpu" : "cpu04",
+        "id" : "/docker/18aebcc6fb0e42bed9b2653a1d5f45e1c411ecce2db8234cbe29a04207b1ff16",
+        "image" : "prom/prometheus:latest",
+        "instance" : "localhost",
+        "job" : "cadvisor",
+        "name" : "sad_chatterjee"
+      },
+      "values" : [ [ 1792776085, "0.0666828" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "container_label_desktop_docker_io_ports_9090_tcp" : "0.0.0.0:0",
+        "container_label_io_prometheus_image_variant" : "busybox",
+        "container_label_maintainer" : "The Prometheus Authors <prometheus-developers@googlegroups.com>",
+        "container_label_org_opencontainers_image_authors" : "The Prometheus Authors",
+        "container_label_org_opencontainers_image_description" : "The Prometheus monitoring system and time series database",
+        "container_label_org_opencontainers_image_documentation" : "https://prometheus.io/docs",
+        "container_label_org_opencontainers_image_licenses" : "Apache License 2.0",
+        "container_label_org_opencontainers_image_source" : "https://github.com/prometheus/prometheus",
+        "container_label_org_opencontainers_image_title" : "Prometheus",
+        "container_label_org_opencontainers_image_url" : "https://github.com/prometheus/prometheus",
+        "container_label_org_opencontainers_image_vendor" : "Prometheus",
+        "container_label_org_testcontainers" : "true",
+        "container_label_org_testcontainers_lang" : "java",
+        "container_label_org_testcontainers_sessionId" : "97b5b91e-a27a-4402-afed-24a24de0e776",
+        "container_label_org_testcontainers_version" : "1.21.3",
+        "cpu" : "cpu05",
+        "id" : "/docker/18aebcc6fb0e42bed9b2653a1d5f45e1c411ecce2db8234cbe29a04207b1ff16",
+        "image" : "prom/prometheus:latest",
+        "instance" : "localhost",
+        "job" : "cadvisor",
+        "name" : "sad_chatterjee"
+      },
+      "values" : [ [ 1792776085, "0.0230254" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "container_label_desktop_docker_io_ports_9090_tcp" : "0.0.0.0:0",
+        "container_label_io_prometheus_image_variant" : "busybox",
+        "container_label_maintainer" : "The Prometheus Authors <prometheus-developers@googlegroups.com>",
+        "container_label_org_opencontainers_image_authors" : "The Prometheus Authors",
+        "container_label_org_opencontainers_image_description" : "The Prometheus monitoring system and time series database",
+        "container_label_org_opencontainers_image_documentation" : "https://prometheus.io/docs",
+        "container_label_org_opencontainers_image_licenses" : "Apache License 2.0",
+        "container_label_org_opencontainers_image_source" : "https://github.com/prometheus/prometheus",
+        "container_label_org_opencontainers_image_title" : "Prometheus",
+        "container_label_org_opencontainers_image_url" : "https://github.com/prometheus/prometheus",
+        "container_label_org_opencontainers_image_vendor" : "Prometheus",
+        "container_label_org_testcontainers" : "true",
+        "container_label_org_testcontainers_lang" : "java",
+        "container_label_org_testcontainers_sessionId" : "97b5b91e-a27a-4402-afed-24a24de0e776",
+        "container_label_org_testcontainers_version" : "1.21.3",
+        "cpu" : "cpu06",
+        "id" : "/docker/18aebcc6fb0e42bed9b2653a1d5f45e1c411ecce2db8234cbe29a04207b1ff16",
+        "image" : "prom/prometheus:latest",
+        "instance" : "localhost",
+        "job" : "cadvisor",
+        "name" : "sad_chatterjee"
+      },
+      "values" : [ [ 1792776085, "0.038899" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "container_label_desktop_docker_io_ports_9090_tcp" : "0.0.0.0:0",
+        "container_label_io_prometheus_image_variant" : "busybox",
+        "container_label_maintainer" : "The Prometheus Authors <prometheus-developers@googlegroups.com>",
+        "container_label_org_opencontainers_image_authors" : "The Prometheus Authors",
+        "container_label_org_opencontainers_image_description" : "The Prometheus monitoring system and time series database",
+        "container_label_org_opencontainers_image_documentation" : "https://prometheus.io/docs",
+        "container_label_org_opencontainers_image_licenses" : "Apache License 2.0",
+        "container_label_org_opencontainers_image_source" : "https://github.com/prometheus/prometheus",
+        "container_label_org_opencontainers_image_title" : "Prometheus",
+        "container_label_org_opencontainers_image_url" : "https://github.com/prometheus/prometheus",
+        "container_label_org_opencontainers_image_vendor" : "Prometheus",
+        "container_label_org_testcontainers" : "true",
+        "container_label_org_testcontainers_lang" : "java",
+        "container_label_org_testcontainers_sessionId" : "97b5b91e-a27a-4402-afed-24a24de0e776",
+        "container_label_org_testcontainers_version" : "1.21.3",
+        "cpu" : "cpu07",
+        "id" : "/docker/18aebcc6fb0e42bed9b2653a1d5f45e1c411ecce2db8234cbe29a04207b1ff16",
+        "image" : "prom/prometheus:latest",
+        "instance" : "localhost",
+        "job" : "cadvisor",
+        "name" : "sad_chatterjee"
+      },
+      "values" : [ [ 1792776085, "0.0226373" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "container_label_desktop_docker_io_ports_9090_tcp" : "0.0.0.0:0",
+        "container_label_io_prometheus_image_variant" : "busybox",
+        "container_label_maintainer" : "The Prometheus Authors <prometheus-developers@googlegroups.com>",
+        "container_label_org_opencontainers_image_authors" : "The Prometheus Authors",
+        "container_label_org_opencontainers_image_description" : "The Prometheus monitoring system and time series database",
+        "container_label_org_opencontainers_image_documentation" : "https://prometheus.io/docs",
+        "container_label_org_opencontainers_image_licenses" : "Apache License 2.0",
+        "container_label_org_opencontainers_image_source" : "https://github.com/prometheus/prometheus",
+        "container_label_org_opencontainers_image_title" : "Prometheus",
+        "container_label_org_opencontainers_image_url" : "https://github.com/prometheus/prometheus",
+        "container_label_org_opencontainers_image_vendor" : "Prometheus",
+        "container_label_org_testcontainers" : "true",
+        "container_label_org_testcontainers_lang" : "java",
+        "container_label_org_testcontainers_sessionId" : "97b5b91e-a27a-4402-afed-24a24de0e776",
+        "container_label_org_testcontainers_version" : "1.21.3",
+        "cpu" : "cpu08",
+        "id" : "/docker/18aebcc6fb0e42bed9b2653a1d5f45e1c411ecce2db8234cbe29a04207b1ff16",
+        "image" : "prom/prometheus:latest",
+        "instance" : "localhost",
+        "job" : "cadvisor",
+        "name" : "sad_chatterjee"
+      },
+      "values" : [ [ 1792776085, "0.1046846" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "container_label_desktop_docker_io_ports_9090_tcp" : "0.0.0.0:0",
+        "container_label_io_prometheus_image_variant" : "busybox",
+        "container_label_maintainer" : "The Prometheus Authors <prometheus-developers@googlegroups.com>",
+        "container_label_org_opencontainers_image_authors" : "The Prometheus Authors",
+        "container_label_org_opencontainers_image_description" : "The Prometheus monitoring system and time series database",
+        "container_label_org_opencontainers_image_documentation" : "https://prometheus.io/docs",
+        "container_label_org_opencontainers_image_licenses" : "Apache License 2.0",
+        "container_label_org_opencontainers_image_source" : "https://github.com/prometheus/prometheus",
+        "container_label_org_opencontainers_image_title" : "Prometheus",
+        "container_label_org_opencontainers_image_url" : "https://github.com/prometheus/prometheus",
+        "container_label_org_opencontainers_image_vendor" : "Prometheus",
+        "container_label_org_testcontainers" : "true",
+        "container_label_org_testcontainers_lang" : "java",
+        "container_label_org_testcontainers_sessionId" : "97b5b91e-a27a-4402-afed-24a24de0e776",
+        "container_label_org_testcontainers_version" : "1.21.3",
+        "cpu" : "cpu09",
+        "id" : "/docker/18aebcc6fb0e42bed9b2653a1d5f45e1c411ecce2db8234cbe29a04207b1ff16",
+        "image" : "prom/prometheus:latest",
+        "instance" : "localhost",
+        "job" : "cadvisor",
+        "name" : "sad_chatterjee"
+      },
+      "values" : [ [ 1792776085, "0.0373028" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "container_label_desktop_docker_io_ports_9090_tcp" : "0.0.0.0:0",
+        "container_label_io_prometheus_image_variant" : "busybox",
+        "container_label_maintainer" : "The Prometheus Authors <prometheus-developers@googlegroups.com>",
+        "container_label_org_opencontainers_image_authors" : "The Prometheus Authors",
+        "container_label_org_opencontainers_image_description" : "The Prometheus monitoring system and time series database",
+        "container_label_org_opencontainers_image_documentation" : "https://prometheus.io/docs",
+        "container_label_org_opencontainers_image_licenses" : "Apache License 2.0",
+        "container_label_org_opencontainers_image_source" : "https://github.com/prometheus/prometheus",
+        "container_label_org_opencontainers_image_title" : "Prometheus",
+        "container_label_org_opencontainers_image_url" : "https://github.com/prometheus/prometheus",
+        "container_label_org_opencontainers_image_vendor" : "Prometheus",
+        "container_label_org_testcontainers" : "true",
+        "container_label_org_testcontainers_lang" : "java",
+        "container_label_org_testcontainers_sessionId" : "97b5b91e-a27a-4402-afed-24a24de0e776",
+        "container_label_org_testcontainers_version" : "1.21.3",
+        "cpu" : "cpu10",
+        "id" : "/docker/18aebcc6fb0e42bed9b2653a1d5f45e1c411ecce2db8234cbe29a04207b1ff16",
+        "image" : "prom/prometheus:latest",
+        "instance" : "localhost",
+        "job" : "cadvisor",
+        "name" : "sad_chatterjee"
+      },
+      "values" : [ [ 1792776085, "0.0185085" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "container_label_desktop_docker_io_ports_9090_tcp" : "0.0.0.0:0",
+        "container_label_io_prometheus_image_variant" : "busybox",
+        "container_label_maintainer" : "The Prometheus Authors <prometheus-developers@googlegroups.com>",
+        "container_label_org_opencontainers_image_authors" : "The Prometheus Authors",
+        "container_label_org_opencontainers_image_description" : "The Prometheus monitoring system and time series database",
+        "container_label_org_opencontainers_image_documentation" : "https://prometheus.io/docs",
+        "container_label_org_opencontainers_image_licenses" : "Apache License 2.0",
+        "container_label_org_opencontainers_image_source" : "https://github.com/prometheus/prometheus",
+        "container_label_org_opencontainers_image_title" : "Prometheus",
+        "container_label_org_opencontainers_image_url" : "https://github.com/prometheus/prometheus",
+        "container_label_org_opencontainers_image_vendor" : "Prometheus",
+        "container_label_org_testcontainers" : "true",
+        "container_label_org_testcontainers_lang" : "java",
+        "container_label_org_testcontainers_sessionId" : "97b5b91e-a27a-4402-afed-24a24de0e776",
+        "container_label_org_testcontainers_version" : "1.21.3",
+        "cpu" : "cpu11",
+        "id" : "/docker/18aebcc6fb0e42bed9b2653a1d5f45e1c411ecce2db8234cbe29a04207b1ff16",
+        "image" : "prom/prometheus:latest",
+        "instance" : "localhost",
+        "job" : "cadvisor",
+        "name" : "sad_chatterjee"
+      },
+      "values" : [ [ 1792776085, "0.0477949" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "container_label_desktop_docker_io_ports_9100_tcp" : "0.0.0.0:0",
+        "container_label_io_prometheus_image_variant" : "busybox",
+        "container_label_maintainer" : "The Prometheus Authors <prometheus-developers@googlegroups.com>",
+        "container_label_org_opencontainers_image_authors" : "The Prometheus Authors",
+        "container_label_org_opencontainers_image_description" : "Prometheus exporter for hardware and OS metrics exposed by *NIX kernels",
+        "container_label_org_opencontainers_image_documentation" : "https://github.com/prometheus/node_exporter",
+        "container_label_org_opencontainers_image_licenses" : "Apache License 2.0",
+        "container_label_org_opencontainers_image_source" : "https://github.com/prometheus/node_exporter",
+        "container_label_org_opencontainers_image_title" : "node_exporter",
+        "container_label_org_opencontainers_image_url" : "https://github.com/prometheus/node_exporter",
+        "container_label_org_opencontainers_image_vendor" : "Prometheus",
+        "container_label_org_testcontainers" : "true",
+        "container_label_org_testcontainers_lang" : "java",
+        "container_label_org_testcontainers_sessionId" : "97b5b91e-a27a-4402-afed-24a24de0e776",
+        "container_label_org_testcontainers_version" : "1.21.3",
+        "cpu" : "cpu00",
+        "id" : "/docker/b3320b89f84cf924fdcbe18790a1d0a50884265d92e0a1002e2343705cf5ce06",
+        "image" : "prom/node-exporter:latest",
+        "instance" : "localhost",
+        "job" : "cadvisor",
+        "name" : "reverent_jennings"
+      },
+      "values" : [ [ 1792776085, "0.0090621" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "container_label_desktop_docker_io_ports_9100_tcp" : "0.0.0.0:0",
+        "container_label_io_prometheus_image_variant" : "busybox",
+        "container_label_maintainer" : "The Prometheus Authors <prometheus-developers@googlegroups.com>",
+        "container_label_org_opencontainers_image_authors" : "The Prometheus Authors",
+        "container_label_org_opencontainers_image_description" : "Prometheus exporter for hardware and OS metrics exposed by *NIX kernels",
+        "container_label_org_opencontainers_image_documentation" : "https://github.com/prometheus/node_exporter",
+        "container_label_org_opencontainers_image_licenses" : "Apache License 2.0",
+        "container_label_org_opencontainers_image_source" : "https://github.com/prometheus/node_exporter",
+        "container_label_org_opencontainers_image_title" : "node_exporter",
+        "container_label_org_opencontainers_image_url" : "https://github.com/prometheus/node_exporter",
+        "container_label_org_opencontainers_image_vendor" : "Prometheus",
+        "container_label_org_testcontainers" : "true",
+        "container_label_org_testcontainers_lang" : "java",
+        "container_label_org_testcontainers_sessionId" : "97b5b91e-a27a-4402-afed-24a24de0e776",
+        "container_label_org_testcontainers_version" : "1.21.3",
+        "cpu" : "cpu01",
+        "id" : "/docker/b3320b89f84cf924fdcbe18790a1d0a50884265d92e0a1002e2343705cf5ce06",
+        "image" : "prom/node-exporter:latest",
+        "instance" : "localhost",
+        "job" : "cadvisor",
+        "name" : "reverent_jennings"
+      },
+      "values" : [ [ 1792776085, "0.0042369" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "container_label_desktop_docker_io_ports_9100_tcp" : "0.0.0.0:0",
+        "container_label_io_prometheus_image_variant" : "busybox",
+        "container_label_maintainer" : "The Prometheus Authors <prometheus-developers@googlegroups.com>",
+        "container_label_org_opencontainers_image_authors" : "The Prometheus Authors",
+        "container_label_org_opencontainers_image_description" : "Prometheus exporter for hardware and OS metrics exposed by *NIX kernels",
+        "container_label_org_opencontainers_image_documentation" : "https://github.com/prometheus/node_exporter",
+        "container_label_org_opencontainers_image_licenses" : "Apache License 2.0",
+        "container_label_org_opencontainers_image_source" : "https://github.com/prometheus/node_exporter",
+        "container_label_org_opencontainers_image_title" : "node_exporter",
+        "container_label_org_opencontainers_image_url" : "https://github.com/prometheus/node_exporter",
+        "container_label_org_opencontainers_image_vendor" : "Prometheus",
+        "container_label_org_testcontainers" : "true",
+        "container_label_org_testcontainers_lang" : "java",
+        "container_label_org_testcontainers_sessionId" : "97b5b91e-a27a-4402-afed-24a24de0e776",
+        "container_label_org_testcontainers_version" : "1.21.3",
+        "cpu" : "cpu02",
+        "id" : "/docker/b3320b89f84cf924fdcbe18790a1d0a50884265d92e0a1002e2343705cf5ce06",
+        "image" : "prom/node-exporter:latest",
+        "instance" : "localhost",
+        "job" : "cadvisor",
+        "name" : "reverent_jennings"
+      },
+      "values" : [ [ 1792776085, "0.024377" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "container_label_desktop_docker_io_ports_9100_tcp" : "0.0.0.0:0",
+        "container_label_io_prometheus_image_variant" : "busybox",
+        "container_label_maintainer" : "The Prometheus Authors <prometheus-developers@googlegroups.com>",
+        "container_label_org_opencontainers_image_authors" : "The Prometheus Authors",
+        "container_label_org_opencontainers_image_description" : "Prometheus exporter for hardware and OS metrics exposed by *NIX kernels",
+        "container_label_org_opencontainers_image_documentation" : "https://github.com/prometheus/node_exporter",
+        "container_label_org_opencontainers_image_licenses" : "Apache License 2.0",
+        "container_label_org_opencontainers_image_source" : "https://github.com/prometheus/node_exporter",
+        "container_label_org_opencontainers_image_title" : "node_exporter",
+        "container_label_org_opencontainers_image_url" : "https://github.com/prometheus/node_exporter",
+        "container_label_org_opencontainers_image_vendor" : "Prometheus",
+        "container_label_org_testcontainers" : "true",
+        "container_label_org_testcontainers_lang" : "java",
+        "container_label_org_testcontainers_sessionId" : "97b5b91e-a27a-4402-afed-24a24de0e776",
+        "container_label_org_testcontainers_version" : "1.21.3",
+        "cpu" : "cpu03",
+        "id" : "/docker/b3320b89f84cf924fdcbe18790a1d0a50884265d92e0a1002e2343705cf5ce06",
+        "image" : "prom/node-exporter:latest",
+        "instance" : "localhost",
+        "job" : "cadvisor",
+        "name" : "reverent_jennings"
+      },
+      "values" : [ [ 1792776085, "0.0149587" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "container_label_desktop_docker_io_ports_9100_tcp" : "0.0.0.0:0",
+        "container_label_io_prometheus_image_variant" : "busybox",
+        "container_label_maintainer" : "The Prometheus Authors <prometheus-developers@googlegroups.com>",
+        "container_label_org_opencontainers_image_authors" : "The Prometheus Authors",
+        "container_label_org_opencontainers_image_description" : "Prometheus exporter for hardware and OS metrics exposed by *NIX kernels",
+        "container_label_org_opencontainers_image_documentation" : "https://github.com/prometheus/node_exporter",
+        "container_label_org_opencontainers_image_licenses" : "Apache License 2.0",
+        "container_label_org_opencontainers_image_source" : "https://github.com/prometheus/node_exporter",
+        "container_label_org_opencontainers_image_title" : "node_exporter",
+        "container_label_org_opencontainers_image_url" : "https://github.com/prometheus/node_exporter",
+        "container_label_org_opencontainers_image_vendor" : "Prometheus",
+        "container_label_org_testcontainers" : "true",
+        "container_label_org_testcontainers_lang" : "java",
+        "container_label_org_testcontainers_sessionId" : "97b5b91e-a27a-4402-afed-24a24de0e776",
+        "container_label_org_testcontainers_version" : "1.21.3",
+        "cpu" : "cpu04",
+        "id" : "/docker/b3320b89f84cf924fdcbe18790a1d0a50884265d92e0a1002e2343705cf5ce06",
+        "image" : "prom/node-exporter:latest",
+        "instance" : "localhost",
+        "job" : "cadvisor",
+        "name" : "reverent_jennings"
+      },
+      "values" : [ [ 1792776085, "0.0082208" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "container_label_desktop_docker_io_ports_9100_tcp" : "0.0.0.0:0",
+        "container_label_io_prometheus_image_variant" : "busybox",
+        "container_label_maintainer" : "The Prometheus Authors <prometheus-developers@googlegroups.com>",
+        "container_label_org_opencontainers_image_authors" : "The Prometheus Authors",
+        "container_label_org_opencontainers_image_description" : "Prometheus exporter for hardware and OS metrics exposed by *NIX kernels",
+        "container_label_org_opencontainers_image_documentation" : "https://github.com/prometheus/node_exporter",
+        "container_label_org_opencontainers_image_licenses" : "Apache License 2.0",
+        "container_label_org_opencontainers_image_source" : "https://github.com/prometheus/node_exporter",
+        "container_label_org_opencontainers_image_title" : "node_exporter",
+        "container_label_org_opencontainers_image_url" : "https://github.com/prometheus/node_exporter",
+        "container_label_org_opencontainers_image_vendor" : "Prometheus",
+        "container_label_org_testcontainers" : "true",
+        "container_label_org_testcontainers_lang" : "java",
+        "container_label_org_testcontainers_sessionId" : "97b5b91e-a27a-4402-afed-24a24de0e776",
+        "container_label_org_testcontainers_version" : "1.21.3",
+        "cpu" : "cpu05",
+        "id" : "/docker/b3320b89f84cf924fdcbe18790a1d0a50884265d92e0a1002e2343705cf5ce06",
+        "image" : "prom/node-exporter:latest",
+        "instance" : "localhost",
+        "job" : "cadvisor",
+        "name" : "reverent_jennings"
+      },
+      "values" : [ [ 1792776085, "0.0152541" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "container_label_desktop_docker_io_ports_9100_tcp" : "0.0.0.0:0",
+        "container_label_io_prometheus_image_variant" : "busybox",
+        "container_label_maintainer" : "The Prometheus Authors <prometheus-developers@googlegroups.com>",
+        "container_label_org_opencontainers_image_authors" : "The Prometheus Authors",
+        "container_label_org_opencontainers_image_description" : "Prometheus exporter for hardware and OS metrics exposed by *NIX kernels",
+        "container_label_org_opencontainers_image_documentation" : "https://github.com/prometheus/node_exporter",
+        "container_label_org_opencontainers_image_licenses" : "Apache License 2.0",
+        "container_label_org_opencontainers_image_source" : "https://github.com/prometheus/node_exporter",
+        "container_label_org_opencontainers_image_title" : "node_exporter",
+        "container_label_org_opencontainers_image_url" : "https://github.com/prometheus/node_exporter",
+        "container_label_org_opencontainers_image_vendor" : "Prometheus",
+        "container_label_org_testcontainers" : "true",
+        "container_label_org_testcontainers_lang" : "java",
+        "container_label_org_testcontainers_sessionId" : "97b5b91e-a27a-4402-afed-24a24de0e776",
+        "container_label_org_testcontainers_version" : "1.21.3",
+        "cpu" : "cpu06",
+        "id" : "/docker/b3320b89f84cf924fdcbe18790a1d0a50884265d92e0a1002e2343705cf5ce06",
+        "image" : "prom/node-exporter:latest",
+        "instance" : "localhost",
+        "job" : "cadvisor",
+        "name" : "reverent_jennings"
+      },
+      "values" : [ [ 1792776085, "0.0272348" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "container_label_desktop_docker_io_ports_9100_tcp" : "0.0.0.0:0",
+        "container_label_io_prometheus_image_variant" : "busybox",
+        "container_label_maintainer" : "The Prometheus Authors <prometheus-developers@googlegroups.com>",
+        "container_label_org_opencontainers_image_authors" : "The Prometheus Authors",
+        "container_label_org_opencontainers_image_description" : "Prometheus exporter for hardware and OS metrics exposed by *NIX kernels",
+        "container_label_org_opencontainers_image_documentation" : "https://github.com/prometheus/node_exporter",
+        "container_label_org_opencontainers_image_licenses" : "Apache License 2.0",
+        "container_label_org_opencontainers_image_source" : "https://github.com/prometheus/node_exporter",
+        "container_label_org_opencontainers_image_title" : "node_exporter",
+        "container_label_org_opencontainers_image_url" : "https://github.com/prometheus/node_exporter",
+        "container_label_org_opencontainers_image_vendor" : "Prometheus",
+        "container_label_org_testcontainers" : "true",
+        "container_label_org_testcontainers_lang" : "java",
+        "container_label_org_testcontainers_sessionId" : "97b5b91e-a27a-4402-afed-24a24de0e776",
+        "container_label_org_testcontainers_version" : "1.21.3",
+        "cpu" : "cpu07",
+        "id" : "/docker/b3320b89f84cf924fdcbe18790a1d0a50884265d92e0a1002e2343705cf5ce06",
+        "image" : "prom/node-exporter:latest",
+        "instance" : "localhost",
+        "job" : "cadvisor",
+        "name" : "reverent_jennings"
+      },
+      "values" : [ [ 1792776085, "0.000703" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "container_label_desktop_docker_io_ports_9100_tcp" : "0.0.0.0:0",
+        "container_label_io_prometheus_image_variant" : "busybox",
+        "container_label_maintainer" : "The Prometheus Authors <prometheus-developers@googlegroups.com>",
+        "container_label_org_opencontainers_image_authors" : "The Prometheus Authors",
+        "container_label_org_opencontainers_image_description" : "Prometheus exporter for hardware and OS metrics exposed by *NIX kernels",
+        "container_label_org_opencontainers_image_documentation" : "https://github.com/prometheus/node_exporter",
+        "container_label_org_opencontainers_image_licenses" : "Apache License 2.0",
+        "container_label_org_opencontainers_image_source" : "https://github.com/prometheus/node_exporter",
+        "container_label_org_opencontainers_image_title" : "node_exporter",
+        "container_label_org_opencontainers_image_url" : "https://github.com/prometheus/node_exporter",
+        "container_label_org_opencontainers_image_vendor" : "Prometheus",
+        "container_label_org_testcontainers" : "true",
+        "container_label_org_testcontainers_lang" : "java",
+        "container_label_org_testcontainers_sessionId" : "97b5b91e-a27a-4402-afed-24a24de0e776",
+        "container_label_org_testcontainers_version" : "1.21.3",
+        "cpu" : "cpu08",
+        "id" : "/docker/b3320b89f84cf924fdcbe18790a1d0a50884265d92e0a1002e2343705cf5ce06",
+        "image" : "prom/node-exporter:latest",
+        "instance" : "localhost",
+        "job" : "cadvisor",
+        "name" : "reverent_jennings"
+      },
+      "values" : [ [ 1792776085, "0.0565834" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "container_label_desktop_docker_io_ports_9100_tcp" : "0.0.0.0:0",
+        "container_label_io_prometheus_image_variant" : "busybox",
+        "container_label_maintainer" : "The Prometheus Authors <prometheus-developers@googlegroups.com>",
+        "container_label_org_opencontainers_image_authors" : "The Prometheus Authors",
+        "container_label_org_opencontainers_image_description" : "Prometheus exporter for hardware and OS metrics exposed by *NIX kernels",
+        "container_label_org_opencontainers_image_documentation" : "https://github.com/prometheus/node_exporter",
+        "container_label_org_opencontainers_image_licenses" : "Apache License 2.0",
+        "container_label_org_opencontainers_image_source" : "https://github.com/prometheus/node_exporter",
+        "container_label_org_opencontainers_image_title" : "node_exporter",
+        "container_label_org_opencontainers_image_url" : "https://github.com/prometheus/node_exporter",
+        "container_label_org_opencontainers_image_vendor" : "Prometheus",
+        "container_label_org_testcontainers" : "true",
+        "container_label_org_testcontainers_lang" : "java",
+        "container_label_org_testcontainers_sessionId" : "97b5b91e-a27a-4402-afed-24a24de0e776",
+        "container_label_org_testcontainers_version" : "1.21.3",
+        "cpu" : "cpu09",
+        "id" : "/docker/b3320b89f84cf924fdcbe18790a1d0a50884265d92e0a1002e2343705cf5ce06",
+        "image" : "prom/node-exporter:latest",
+        "instance" : "localhost",
+        "job" : "cadvisor",
+        "name" : "reverent_jennings"
+      },
+      "values" : [ [ 1792776085, "0.0011759" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "container_label_desktop_docker_io_ports_9100_tcp" : "0.0.0.0:0",
+        "container_label_io_prometheus_image_variant" : "busybox",
+        "container_label_maintainer" : "The Prometheus Authors <prometheus-developers@googlegroups.com>",
+        "container_label_org_opencontainers_image_authors" : "The Prometheus Authors",
+        "container_label_org_opencontainers_image_description" : "Prometheus exporter for hardware and OS metrics exposed by *NIX kernels",
+        "container_label_org_opencontainers_image_documentation" : "https://github.com/prometheus/node_exporter",
+        "container_label_org_opencontainers_image_licenses" : "Apache License 2.0",
+        "container_label_org_opencontainers_image_source" : "https://github.com/prometheus/node_exporter",
+        "container_label_org_opencontainers_image_title" : "node_exporter",
+        "container_label_org_opencontainers_image_url" : "https://github.com/prometheus/node_exporter",
+        "container_label_org_opencontainers_image_vendor" : "Prometheus",
+        "container_label_org_testcontainers" : "true",
+        "container_label_org_testcontainers_lang" : "java",
+        "container_label_org_testcontainers_sessionId" : "97b5b91e-a27a-4402-afed-24a24de0e776",
+        "container_label_org_testcontainers_version" : "1.21.3",
+        "cpu" : "cpu10",
+        "id" : "/docker/b3320b89f84cf924fdcbe18790a1d0a50884265d92e0a1002e2343705cf5ce06",
+        "image" : "prom/node-exporter:latest",
+        "instance" : "localhost",
+        "job" : "cadvisor",
+        "name" : "reverent_jennings"
+      },
+      "values" : [ [ 1792776085, "0.0074442" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "container_label_desktop_docker_io_ports_9100_tcp" : "0.0.0.0:0",
+        "container_label_io_prometheus_image_variant" : "busybox",
+        "container_label_maintainer" : "The Prometheus Authors <prometheus-developers@googlegroups.com>",
+        "container_label_org_opencontainers_image_authors" : "The Prometheus Authors",
+        "container_label_org_opencontainers_image_description" : "Prometheus exporter for hardware and OS metrics exposed by *NIX kernels",
+        "container_label_org_opencontainers_image_documentation" : "https://github.com/prometheus/node_exporter",
+        "container_label_org_opencontainers_image_licenses" : "Apache License 2.0",
+        "container_label_org_opencontainers_image_source" : "https://github.com/prometheus/node_exporter",
+        "container_label_org_opencontainers_image_title" : "node_exporter",
+        "container_label_org_opencontainers_image_url" : "https://github.com/prometheus/node_exporter",
+        "container_label_org_opencontainers_image_vendor" : "Prometheus",
+        "container_label_org_testcontainers" : "true",
+        "container_label_org_testcontainers_lang" : "java",
+        "container_label_org_testcontainers_sessionId" : "97b5b91e-a27a-4402-afed-24a24de0e776",
+        "container_label_org_testcontainers_version" : "1.21.3",
+        "cpu" : "cpu11",
+        "id" : "/docker/b3320b89f84cf924fdcbe18790a1d0a50884265d92e0a1002e2343705cf5ce06",
+        "image" : "prom/node-exporter:latest",
+        "instance" : "localhost",
+        "job" : "cadvisor",
+        "name" : "reverent_jennings"
+      },
+      "values" : [ [ 1792776085, "0.0045178" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu00",
+        "id" : "/",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "121.250896264" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu00",
+        "id" : "/001-metadata",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "0.0052046" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu00",
+        "id" : "/002-services0",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "0.0123641" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu00",
+        "id" : "/003-services1",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "0.0000486" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu00",
+        "id" : "/004-mount-services",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "0.0003028" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu00",
+        "id" : "/005-bridge",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "0.0013436" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu00",
+        "id" : "/allowlist",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "0.0414957" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu00",
+        "id" : "/binfmt",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "0.0063055" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu00",
+        "id" : "/devenv-service",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "0.0008277" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu00",
+        "id" : "/dns-forwarder",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "0.5584236" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu00",
+        "id" : "/docker",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "0.3289745" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu00",
+        "id" : "/http-proxy",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "0.0001058" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu00",
+        "id" : "/kmsg",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "0.0049504" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu00",
+        "id" : "/podruntime",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "7.8281668" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu00",
+        "id" : "/podruntime/docker",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "7.8281668" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu00",
+        "id" : "/rngd",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "0.0014591" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu00",
+        "id" : "/systemreserved",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "2.1936795" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu00",
+        "id" : "/systemreserved/acpid",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "0.000454" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu00",
+        "id" : "/systemreserved/diagnose",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "0.0482179" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu00",
+        "id" : "/systemreserved/ntpd",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "0.1892319" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu00",
+        "id" : "/systemreserved/socks",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "0.0135709" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu00",
+        "id" : "/systemreserved/trim-after-delete",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "0.0195353" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu00",
+        "id" : "/systemreserved/vpnkit-forwarder",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "0.0064862" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu00",
+        "id" : "/systemreserved/vpnkit-tap-vsockd",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "1.9161833" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu00",
+        "id" : "/volume-contents",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "0.0021971" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu01",
+        "id" : "/",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "44.467135164" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu01",
+        "id" : "/002-services0",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "0.0000545" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu01",
+        "id" : "/004-mount-services",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "0.0007434" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu01",
+        "id" : "/005-bridge",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "0.0009779" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu01",
+        "id" : "/allowlist",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "0.0201326" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu01",
+        "id" : "/binfmt",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "0.0259539" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu01",
+        "id" : "/devenv-service",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "0.0019568" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu01",
+        "id" : "/dns-forwarder",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "0.3782923" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu01",
+        "id" : "/docker",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "0.4053547" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu01",
+        "id" : "/http-proxy",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "0.0008578" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu01",
+        "id" : "/kmsg",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "0.0131802" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu01",
+        "id" : "/podruntime",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "5.876226" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu01",
+        "id" : "/podruntime/docker",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "5.876226" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu01",
+        "id" : "/rngd",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "0.0252364" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu01",
+        "id" : "/systemreserved",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "1.5578608" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu01",
+        "id" : "/systemreserved/acpid",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "0.0010369" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu01",
+        "id" : "/systemreserved/diagnose",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "0.0137717" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu01",
+        "id" : "/systemreserved/ntpd",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "0.0026829" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu01",
+        "id" : "/systemreserved/socks",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "0.0122462" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu01",
+        "id" : "/systemreserved/trim-after-delete",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "0.0053279" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu01",
+        "id" : "/systemreserved/vpnkit-forwarder",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "0.0027522" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu01",
+        "id" : "/systemreserved/vpnkit-tap-vsockd",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "1.520043" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu01",
+        "id" : "/volume-contents",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "0.0188699" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu02",
+        "id" : "/",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "70.854227522" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu02",
+        "id" : "/001-metadata",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "0.0009118" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu02",
+        "id" : "/002-services0",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "0.0039109" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu02",
+        "id" : "/003-services1",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "0.0094556" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu02",
+        "id" : "/004-mount-services",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "0.0104699" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu02",
+        "id" : "/005-bridge",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "0.0016372" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu02",
+        "id" : "/allowlist",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "0.0024267" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu02",
+        "id" : "/binfmt",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "0.0220431" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu02",
+        "id" : "/devenv-service",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "0.0029154" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu02",
+        "id" : "/dns-forwarder",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "0.4282055" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu02",
+        "id" : "/docker",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "0.4397616" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu02",
+        "id" : "/http-proxy",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "0.000146" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu02",
+        "id" : "/kmsg",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "0.0041159" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu02",
+        "id" : "/podruntime",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "7.8554111" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu02",
+        "id" : "/podruntime/docker",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "7.8554111" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu02",
+        "id" : "/rngd",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "0.0216033" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu02",
+        "id" : "/systemreserved",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "2.2002058" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu02",
+        "id" : "/systemreserved/acpid",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "0.0009307" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu02",
+        "id" : "/systemreserved/diagnose",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "0.0630493" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu02",
+        "id" : "/systemreserved/ntpd",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "0.1361088" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu02",
+        "id" : "/systemreserved/socks",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "0.0004606" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu02",
+        "id" : "/systemreserved/trim-after-delete",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "0.1086655" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu02",
+        "id" : "/systemreserved/vpnkit-forwarder",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "0.0459435" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu02",
+        "id" : "/systemreserved/vpnkit-tap-vsockd",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "1.844369" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu02",
+        "id" : "/volume-contents",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "0.0089723" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu03",
+        "id" : "/",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "39.040083989" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu03",
+        "id" : "/001-metadata",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "0.0005704" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu03",
+        "id" : "/002-services0",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "0.0011363" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu03",
+        "id" : "/003-services1",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "0.0008243" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu03",
+        "id" : "/allowlist",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "0.000092" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu03",
+        "id" : "/binfmt",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "0.0000551" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu03",
+        "id" : "/devenv-service",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "0.0084713" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu03",
+        "id" : "/dns-forwarder",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "0.5890582" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu03",
+        "id" : "/docker",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "0.5433462" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu03",
+        "id" : "/http-proxy",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "0.0004936" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu03",
+        "id" : "/kmsg",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "0.0044747" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu03",
+        "id" : "/podruntime",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "5.2673405" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu03",
+        "id" : "/podruntime/docker",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "5.2672898" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu03",
+        "id" : "/systemreserved",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "1.8449158" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu03",
+        "id" : "/systemreserved/diagnose",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "0.001903" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu03",
+        "id" : "/systemreserved/ntpd",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "0.0059962" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu03",
+        "id" : "/systemreserved/socks",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "0.0046231" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu03",
+        "id" : "/systemreserved/trim-after-delete",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "0.003548" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu03",
+        "id" : "/systemreserved/vpnkit-forwarder",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "0.0018695" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu03",
+        "id" : "/systemreserved/vpnkit-tap-vsockd",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "1.826976" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu03",
+        "id" : "/volume-contents",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "0.0034142" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu04",
+        "id" : "/",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "72.115755199" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu04",
+        "id" : "/001-metadata",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "0.0008087" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu04",
+        "id" : "/002-services0",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "0.0034528" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu04",
+        "id" : "/003-services1",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "0.0019011" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu04",
+        "id" : "/004-mount-services",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "0.0014315" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu04",
+        "id" : "/005-bridge",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "0.0123143" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu04",
+        "id" : "/allowlist",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "0.0036556" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu04",
+        "id" : "/binfmt",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "0.008374" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu04",
+        "id" : "/devenv-service",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "0.0002247" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu04",
+        "id" : "/dns-forwarder",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "0.4751079" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu04",
+        "id" : "/docker",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "0.3927869" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu04",
+        "id" : "/http-proxy",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "0.0207326" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu04",
+        "id" : "/kmsg",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "0.0062437" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu04",
+        "id" : "/podruntime",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "8.3228364" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu04",
+        "id" : "/podruntime/docker",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "8.3228364" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu04",
+        "id" : "/rngd",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "0.017975" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu04",
+        "id" : "/systemreserved",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "2.0872107" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu04",
+        "id" : "/systemreserved/acpid",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "0.0008103" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu04",
+        "id" : "/systemreserved/diagnose",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "0.0492902" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu04",
+        "id" : "/systemreserved/ntpd",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "0.1162077" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu04",
+        "id" : "/systemreserved/socks",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "0.0095762" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu04",
+        "id" : "/systemreserved/trim-after-delete",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "0.0042769" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu04",
+        "id" : "/systemreserved/vpnkit-forwarder",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "0.0056581" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu04",
+        "id" : "/systemreserved/vpnkit-tap-vsockd",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "1.9013033" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu04",
+        "id" : "/volume-contents",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "0.0075872" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu05",
+        "id" : "/",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "31.449178861" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu05",
+        "id" : "/001-metadata",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "0.0011868" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu05",
+        "id" : "/002-services0",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "0.0001656" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu05",
+        "id" : "/004-mount-services",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "0.0011396" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu05",
+        "id" : "/allowlist",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "0.0003469" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu05",
+        "id" : "/binfmt",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "0.0103484" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu05",
+        "id" : "/dns-forwarder",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "0.3965737" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu05",
+        "id" : "/docker",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "0.3636313" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu05",
+        "id" : "/http-proxy",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "0.0025504" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu05",
+        "id" : "/kmsg",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "0.001158" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu05",
+        "id" : "/podruntime",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "5.7610252" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu05",
+        "id" : "/podruntime/docker",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "5.7610252" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu05",
+        "id" : "/rngd",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "0.0000961" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu05",
+        "id" : "/systemreserved",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "1.8651669" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu05",
+        "id" : "/systemreserved/diagnose",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "0.0197719" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu05",
+        "id" : "/systemreserved/ntpd",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "0.0005699" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu05",
+        "id" : "/systemreserved/socks",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "0.0092966" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu05",
+        "id" : "/systemreserved/trim-after-delete",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "0.0166531" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu05",
+        "id" : "/systemreserved/vpnkit-forwarder",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "0.0215225" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu05",
+        "id" : "/systemreserved/vpnkit-tap-vsockd",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "1.7973529" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu05",
+        "id" : "/volume-contents",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "0.0003007" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu06",
+        "id" : "/",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "69.388620473" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu06",
+        "id" : "/001-metadata",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "0.0001076" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu06",
+        "id" : "/002-services0",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "0.0012363" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu06",
+        "id" : "/004-mount-services",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "0.001984" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu06",
+        "id" : "/005-bridge",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "0.0057535" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu06",
+        "id" : "/allowlist",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "0.0009021" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu06",
+        "id" : "/binfmt",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "0.0039161" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu06",
+        "id" : "/devenv-service",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "0.0000082" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu06",
+        "id" : "/dns-forwarder",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "0.5742956" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu06",
+        "id" : "/docker",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "0.2964579" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu06",
+        "id" : "/http-proxy",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "0.0340078" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu06",
+        "id" : "/kmsg",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "0.0059773" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu06",
+        "id" : "/podruntime",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "7.8182055" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu06",
+        "id" : "/podruntime/docker",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "7.8182055" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu06",
+        "id" : "/rngd",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "0.008004" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu06",
+        "id" : "/systemreserved",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "2.2209725" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu06",
+        "id" : "/systemreserved/acpid",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "0.0187068" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu06",
+        "id" : "/systemreserved/diagnose",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "0.1646477" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu06",
+        "id" : "/systemreserved/ntpd",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "0.1147523" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu06",
+        "id" : "/systemreserved/socks",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "0.0013576" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu06",
+        "id" : "/systemreserved/trim-after-delete",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "0.0029175" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu06",
+        "id" : "/systemreserved/vpnkit-forwarder",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "0.0116971" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu06",
+        "id" : "/systemreserved/vpnkit-tap-vsockd",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "1.9068935" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu06",
+        "id" : "/volume-contents",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "0.0056367" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu07",
+        "id" : "/",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "37.0059756" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu07",
+        "id" : "/001-metadata",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "0.0005579" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu07",
+        "id" : "/003-services1",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "0.0053113" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu07",
+        "id" : "/004-mount-services",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "0.000314" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu07",
+        "id" : "/binfmt",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "0.001723" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu07",
+        "id" : "/devenv-service",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "0.0168646" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu07",
+        "id" : "/dns-forwarder",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "0.4190702" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu07",
+        "id" : "/docker",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "0.3346566" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu07",
+        "id" : "/http-proxy",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "0.0038762" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu07",
+        "id" : "/kmsg",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "0.0019731" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu07",
+        "id" : "/podruntime",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "6.2690402" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu07",
+        "id" : "/podruntime/docker",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "6.2690402" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu07",
+        "id" : "/systemreserved",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "1.802545" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu07",
+        "id" : "/systemreserved/acpid",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "0.000652" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu07",
+        "id" : "/systemreserved/diagnose",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "0.1324154" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu07",
+        "id" : "/systemreserved/ntpd",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "0.1312987" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu07",
+        "id" : "/systemreserved/socks",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "0.0016657" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu07",
+        "id" : "/systemreserved/trim-after-delete",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "0.0062331" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu07",
+        "id" : "/systemreserved/vpnkit-forwarder",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "0.0169958" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu07",
+        "id" : "/systemreserved/vpnkit-tap-vsockd",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "1.5132843" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu07",
+        "id" : "/volume-contents",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "0.0190915" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu08",
+        "id" : "/",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "63.798521883" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu08",
+        "id" : "/001-metadata",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "0.0127324" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu08",
+        "id" : "/002-services0",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "0.0005475" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu08",
+        "id" : "/003-services1",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "0.0006883" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu08",
+        "id" : "/004-mount-services",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "0.0120969" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu08",
+        "id" : "/005-bridge",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "0.0003422" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu08",
+        "id" : "/allowlist",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "0.0073204" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu08",
+        "id" : "/binfmt",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "0.0025814" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu08",
+        "id" : "/devenv-service",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "0.0030857" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu08",
+        "id" : "/dns-forwarder",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "0.3777003" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu08",
+        "id" : "/docker",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "0.508653" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu08",
+        "id" : "/http-proxy",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "0.0189139" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu08",
+        "id" : "/kmsg",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "0.0526273" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu08",
+        "id" : "/podruntime",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "7.2116118" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu08",
+        "id" : "/podruntime/docker",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "7.2114507" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu08",
+        "id" : "/systemreserved",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "2.1109767" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu08",
+        "id" : "/systemreserved/acpid",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "0.0014669" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu08",
+        "id" : "/systemreserved/diagnose",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "0.0065336" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu08",
+        "id" : "/systemreserved/ntpd",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "0.1247958" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu08",
+        "id" : "/systemreserved/socks",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "0.0005885" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu08",
+        "id" : "/systemreserved/trim-after-delete",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "0.0704358" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu08",
+        "id" : "/systemreserved/vpnkit-forwarder",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "0.0029203" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu08",
+        "id" : "/systemreserved/vpnkit-tap-vsockd",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "1.9038205" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu08",
+        "id" : "/volume-contents",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "0.0030501" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu09",
+        "id" : "/",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "36.282281074" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu09",
+        "id" : "/001-metadata",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "0.0009286" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu09",
+        "id" : "/004-mount-services",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "0.000381" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu09",
+        "id" : "/allowlist",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "0.0010739" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu09",
+        "id" : "/binfmt",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "0.0018224" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu09",
+        "id" : "/devenv-service",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "0.0550678" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu09",
+        "id" : "/dns-forwarder",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "0.3540686" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu09",
+        "id" : "/docker",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "0.2009317" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu09",
+        "id" : "/http-proxy",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "0.0000631" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu09",
+        "id" : "/kmsg",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "0.0005614" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu09",
+        "id" : "/podruntime",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "6.6849325" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu09",
+        "id" : "/podruntime/docker",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "6.6846439" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu09",
+        "id" : "/rngd",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "0.0009099" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu09",
+        "id" : "/systemreserved",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "2.1273707" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu09",
+        "id" : "/systemreserved/acpid",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "0.0008477" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu09",
+        "id" : "/systemreserved/diagnose",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "0.1415482" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu09",
+        "id" : "/systemreserved/ntpd",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "0.1589806" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu09",
+        "id" : "/systemreserved/socks",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "0.0018284" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu09",
+        "id" : "/systemreserved/trim-after-delete",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "0.0132382" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu09",
+        "id" : "/systemreserved/vpnkit-forwarder",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "0.0007253" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu09",
+        "id" : "/systemreserved/vpnkit-tap-vsockd",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "1.8102023" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu09",
+        "id" : "/volume-contents",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "0.0007279" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu10",
+        "id" : "/",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "73.213902265" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu10",
+        "id" : "/001-metadata",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "0.001329" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu10",
+        "id" : "/002-services0",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "0.0006688" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu10",
+        "id" : "/003-services1",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "0.0019974" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu10",
+        "id" : "/004-mount-services",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "0.0007613" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu10",
+        "id" : "/005-bridge",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "0.0004556" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu10",
+        "id" : "/allowlist",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "0.0362496" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu10",
+        "id" : "/binfmt",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "0.0013209" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu10",
+        "id" : "/devenv-service",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "0.0028572" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu10",
+        "id" : "/dns-forwarder",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "0.4856194" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu10",
+        "id" : "/docker",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "0.4114073" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu10",
+        "id" : "/http-proxy",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "0.0051986" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu10",
+        "id" : "/kmsg",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "0.0604309" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu10",
+        "id" : "/podruntime",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "8.1678643" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu10",
+        "id" : "/podruntime/docker",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "8.1678138" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu10",
+        "id" : "/rngd",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "0.0045204" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu10",
+        "id" : "/systemreserved",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "2.1231434" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu10",
+        "id" : "/systemreserved/acpid",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "0.0006001" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu10",
+        "id" : "/systemreserved/diagnose",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "0.0775406" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu10",
+        "id" : "/systemreserved/ntpd",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "0.1753031" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu10",
+        "id" : "/systemreserved/socks",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "0.0023086" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu10",
+        "id" : "/systemreserved/trim-after-delete",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "0.0311042" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu10",
+        "id" : "/systemreserved/vpnkit-forwarder",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "0.0396727" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu10",
+        "id" : "/systemreserved/vpnkit-tap-vsockd",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "1.7965785" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu10",
+        "id" : "/volume-contents",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "0.0393916" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu11",
+        "id" : "/",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "34.254077452" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu11",
+        "id" : "/001-metadata",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "0.0092111" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu11",
+        "id" : "/002-services0",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "0.0038555" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu11",
+        "id" : "/004-mount-services",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "0.0058632" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu11",
+        "id" : "/005-bridge",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "0.0008128" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu11",
+        "id" : "/binfmt",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "0.0136495" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu11",
+        "id" : "/devenv-service",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "0.0008124" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu11",
+        "id" : "/dns-forwarder",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "0.0150529" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu11",
+        "id" : "/docker",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "0.2347174" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu11",
+        "id" : "/http-proxy",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "0.0001425" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu11",
+        "id" : "/kmsg",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "0.0756628" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu11",
+        "id" : "/podruntime",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "5.6204527" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu11",
+        "id" : "/podruntime/docker",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "5.6204527" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu11",
+        "id" : "/rngd",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "0.0004112" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu11",
+        "id" : "/systemreserved",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "1.6107768" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu11",
+        "id" : "/systemreserved/diagnose",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "0.0975105" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu11",
+        "id" : "/systemreserved/ntpd",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "0.0001525" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu11",
+        "id" : "/systemreserved/socks",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "0.0005951" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu11",
+        "id" : "/systemreserved/trim-after-delete",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "0.0258567" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu11",
+        "id" : "/systemreserved/vpnkit-forwarder",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "0.0034163" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu11",
+        "id" : "/systemreserved/vpnkit-tap-vsockd",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "1.4832457" ] ]
+    }, {
+      "metric" : {
+        "__name__" : "container_cpu_usage_seconds_total",
+        "cpu" : "cpu11",
+        "id" : "/volume-contents",
+        "instance" : "localhost",
+        "job" : "cadvisor"
+      },
+      "values" : [ [ 1792776085, "0.0004818" ] ]
+    } ]
+  }
+}

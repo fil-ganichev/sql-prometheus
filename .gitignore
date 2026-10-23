@@ -1,0 +1,34 @@
+.gradle/
+build/
+out/
+.classpath
+.project
+.settings/
+
+# IntelliJ IDEA
+.idea/
+*.iml
+*.iws
+*.ipr
+.idea/**/workspace.xml
+.idea/**/vcs.xml
+.idea/**/tasks.xml
+.idea/**/usage.statistics.xml
+.idea/**/dictionaries
+.idea/**/shelf
+.idea/**/libraries
+.idea/**/caches
+.idea/**/httpRequests
+.idea/**/dataSources
+.idea/**/dataSources.ids
+.idea/**/dataSources.local.xml
+.idea/**/sqlDataSources.xml
+.idea/**/dynamic.xml
+.idea/**/uiDesigner.xml
+.idea/**/gradle.xml
+.idea/**/misc.xml
+.idea/**/modules.xml
+.idea/**/copilot.data.migration*.xml
+
+# Локальные заметки
+.tmpdoc/

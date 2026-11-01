@@ -28,6 +28,9 @@ public final class PrometheusPrograms {
                 .addRuleInstance(PrometheusPushRules.JOIN_FILTER)
                 .addRuleInstance(PrometheusFilterRule.INSTANCE)
                 .addGroupEnd()
+                .addGroupBegin()
+                .addRuleInstance(PrometheusPushRules.JOIN_TIME)
+                .addGroupEnd()
                 .build();
     }
 

@@ -11,7 +11,10 @@ import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.sql.SqlKind;
+import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.util.TimestampString;
+import org.apache.calcite.util.TimestampWithTimeZoneString;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -53,14 +56,14 @@ public class PrometheusFilterRule extends RelRule<RelRule.Config> {
         List<String> names = scan.getRowType().getFieldNames();
 
         for (RexNode conjunct : conjuncts) {
-            if (!absorb(conjunct, names, labels)) {
-                remaining.add(conjunct);
-                continue;
-            }
             TimeBound bound = boundOf(conjunct);
             if (bound != null) {
                 start = bound.start != null ? bound.start : start;
                 end = bound.end != null ? bound.end : end;
+                continue;
+            }
+            if (!absorbLabel(conjunct, names, labels)) {
+                remaining.add(conjunct);
             }
         }
         if (remaining.size() == conjuncts.size()) {
@@ -79,7 +82,7 @@ public class PrometheusFilterRule extends RelRule<RelRule.Config> {
                 RexUtil.composeConjunction(rexBuilder, remaining)));
     }
 
-    private static boolean absorb(RexNode conjunct, List<String> names, Map<String, String> labels) {
+    private static boolean absorbLabel(RexNode conjunct, List<String> names, Map<String, String> labels) {
         if (!(conjunct instanceof RexCall call) || call.getOperands().size() != 2) {
             return false;
         }
@@ -95,31 +98,85 @@ public class PrometheusFilterRule extends RelRule<RelRule.Config> {
             labels.put(names.get(index), RexLiteral.stringValue(literalSide.literal));
             return true;
         }
-        return index == 0 && isTimeKind(call.getKind()) && isNumber(literalSide.literal);
+        return false;
     }
 
     private static TimeBound boundOf(RexNode conjunct) {
-        if (!(conjunct instanceof RexCall call) || call.getOperands().size() != 2) {
+        if (!(conjunct instanceof RexCall call) || call.getOperands().size() != 2 || !isTimeKind(call.getKind())) {
             return null;
         }
-        Side left = side(call.getOperands().get(0));
-        Side right = side(call.getOperands().get(1));
-        boolean refOnLeft = left.ref != null && left.ref.getIndex() == 0;
-        RexLiteral literal = refOnLeft ? right.literal : left.literal;
-        if (literal == null || !isNumber(literal)) {
-            return null;
-        }
-        long value = longValue(literal);
+        RexInputRef ref = inputRef(call.getOperands().get(0));
+        RexNode other = call.getOperands().get(1);
         SqlKind kind = call.getKind();
-        if (!refOnLeft) {
+        if (ref == null || ref.getIndex() != 0) {
+            ref = inputRef(call.getOperands().get(1));
+            other = call.getOperands().get(0);
             kind = kind.reverse();
+        }
+        if (ref == null || ref.getIndex() != 0) {
+            return null;
+        }
+        Long value = epochMillis(other);
+        if (value == null) {
+            return null;
         }
         return switch (kind) {
             case EQUALS -> new TimeBound(value, value);
-            case GREATER_THAN, GREATER_THAN_OR_EQUAL -> new TimeBound(value, null);
-            case LESS_THAN, LESS_THAN_OR_EQUAL -> new TimeBound(null, value);
+            case GREATER_THAN -> new TimeBound(value + 1, null);
+            case GREATER_THAN_OR_EQUAL -> new TimeBound(value, null);
+            case LESS_THAN -> new TimeBound(null, value - 1);
+            case LESS_THAN_OR_EQUAL -> new TimeBound(null, value);
             default -> null;
         };
+    }
+
+    private static Long epochMillis(RexNode node) {
+        if (node instanceof RexLiteral literal) {
+            if (isNumber(literal) || literal.getTypeName().getFamily() == SqlTypeFamily.INTERVAL_DAY_TIME) {
+                return longValue(literal);
+            }
+            if (SqlTypeName.DATETIME_TYPES.contains(literal.getTypeName())) {
+                return epochOf(literal.getValue2());
+            }
+            return null;
+        }
+        if (!(node instanceof RexCall call)) {
+            return null;
+        }
+        if (call.getKind() == SqlKind.CAST && !call.getOperands().isEmpty()) {
+            return epochMillis(call.getOperands().get(0));
+        }
+        String name = call.getOperator().getName();
+        if ("NOW".equalsIgnoreCase(name)
+                || "CURRENT_TIMESTAMP".equalsIgnoreCase(name)
+                || "LOCALTIMESTAMP".equalsIgnoreCase(name)) {
+            return System.currentTimeMillis();
+        }
+        if ((call.getKind() == SqlKind.MINUS || call.getKind() == SqlKind.PLUS) && call.getOperands().size() == 2) {
+            Long base = epochMillis(call.getOperands().get(0));
+            Long shift = epochMillis(call.getOperands().get(1));
+            if (base == null || shift == null) {
+                return null;
+            }
+            return call.getKind() == SqlKind.MINUS ? base - shift : base + shift;
+        }
+        return null;
+    }
+
+    private static Long epochOf(Object value) {
+        if (value instanceof java.util.Calendar calendar) {
+            return calendar.getTimeInMillis();
+        }
+        if (value instanceof Number number) {
+            return number.longValue();
+        }
+        if (value instanceof TimestampString timestamp) {
+            return timestamp.getMillisSinceEpoch();
+        }
+        if (value instanceof TimestampWithTimeZoneString timestamp) {
+            return timestamp.getLocalTimestampString().getMillisSinceEpoch();
+        }
+        return null;
     }
 
     private static boolean isTimeKind(SqlKind kind) {

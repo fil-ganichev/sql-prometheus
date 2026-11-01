@@ -65,15 +65,25 @@ public class PrometheusEnumerableScan extends PrometheusTableScan implements Enu
                 String.class,
                 String.class,
                 String.class,
+                String.class,
                 Long.class,
-                Long.class);
+                Long.class,
+                int.class,
+                String.class,
+                int.class,
+                int.class);
         return implementor.result(physType, Blocks.toBlock(Expressions.call(
                 query,
+                Expressions.constant(getPrometheusTable().baseUrl()),
                 Expressions.constant(getPrometheusTable().metric()),
                 Expressions.constant(String.join(",", getPrometheusTable().labelColumns())),
                 Expressions.constant(filterSpec()),
                 constantLong(getStartMillis()),
-                constantLong(getEndMillis()))));
+                constantLong(getEndMillis()),
+                Expressions.constant(getPrometheusTable().options().maxRows(), int.class),
+                Expressions.constant(getPrometheusTable().options().step()),
+                Expressions.constant(getPrometheusTable().options().connectTimeoutSeconds(), int.class),
+                Expressions.constant(getPrometheusTable().options().queryTimeoutSeconds(), int.class))));
     }
 
     private static org.apache.calcite.linq4j.tree.Expression constantLong(Long value) {

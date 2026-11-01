@@ -4,6 +4,7 @@ import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.RelRule;
+import org.apache.calcite.plan.hep.HepRelVertex;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.logical.LogicalFilter;
 import org.apache.calcite.rel.logical.LogicalJoin;
@@ -23,6 +24,7 @@ import java.util.Map;
 public final class PrometheusPushRules {
     public static final RelOptRule JOIN_FILTER = JoinFilterPushRule.Config.INSTANCE.toRule();
     public static final RelOptRule PROJECT_FILTER = ProjectFilterPushRule.Config.INSTANCE.toRule();
+    public static final RelOptRule JOIN_TIME = JoinTimeRule.Config.INSTANCE.toRule();
 
     private PrometheusPushRules() {
     }
@@ -141,6 +143,94 @@ public final class PrometheusPushRules {
                     project.getTraitSet(),
                     List.of(LogicalFilter.create(project.getInput(), remapped)));
             call.transformTo(pushed);
+        }
+    }
+
+    private static final class JoinTimeRule extends RelRule<JoinTimeRule.Config> {
+        private static final class Config extends FixedOperandConfig {
+            private static final Config INSTANCE = new Config();
+
+            private Config() {
+                super("JoinTimeRule",
+                        b0 -> b0.operand(LogicalJoin.class).anyInputs());
+            }
+
+            @Override
+            public JoinTimeRule toRule() {
+                return new JoinTimeRule(this);
+            }
+        }
+
+        private JoinTimeRule(Config config) {
+            super(config);
+        }
+
+        @Override
+        public void onMatch(RelOptRuleCall call) {
+            LogicalJoin join = call.rel(0);
+            PrometheusTableScan left = findScan(join.getLeft());
+            PrometheusTableScan right = findScan(join.getRight());
+            if (left == null || right == null) {
+                return;
+            }
+            Long start = left.getStartMillis() != null ? left.getStartMillis() : right.getStartMillis();
+            Long end = left.getEndMillis() != null ? left.getEndMillis() : right.getEndMillis();
+            if (start == null && end == null) {
+                return;
+            }
+            RelNode newLeft = applyWindow(join.getLeft(), start, end);
+            RelNode newRight = applyWindow(join.getRight(), start, end);
+            if (newLeft == join.getLeft() && newRight == join.getRight()) {
+                return;
+            }
+            call.transformTo(join.copy(
+                    join.getTraitSet(),
+                    join.getCondition(),
+                    newLeft,
+                    newRight,
+                    join.getJoinType(),
+                    join.isSemiJoinDone()));
+        }
+
+        private static RelNode unwrap(RelNode node) {
+            while (node instanceof HepRelVertex vertex) {
+                node = vertex.getCurrentRel();
+            }
+            return node;
+        }
+
+        private static PrometheusTableScan findScan(RelNode node) {
+            node = unwrap(node);
+            if (node instanceof PrometheusTableScan scan) {
+                return scan;
+            }
+            if (node instanceof LogicalFilter filter) {
+                return findScan(filter.getInput());
+            }
+            return null;
+        }
+
+        private static RelNode applyWindow(RelNode node, Long start, Long end) {
+            node = unwrap(node);
+            if (node instanceof PrometheusTableScan scan) {
+                if (sameWindow(scan, start, end)) {
+                    return node;
+                }
+                return scan.withFilters(Map.of(), start, end);
+            }
+            if (node instanceof LogicalFilter filter) {
+                RelNode input = applyWindow(filter.getInput(), start, end);
+                if (input == filter.getInput()) {
+                    return node;
+                }
+                return filter.copy(filter.getTraitSet(), input, filter.getCondition());
+            }
+            return node;
+        }
+
+        private static boolean sameWindow(PrometheusTableScan scan, Long start, Long end) {
+            return java.util.Objects.equals(scan.getStartMillis(), start)
+                    && java.util.Objects.equals(scan.getEndMillis(), end);
         }
     }
 

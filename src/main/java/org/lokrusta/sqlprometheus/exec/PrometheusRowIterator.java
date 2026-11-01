@@ -2,8 +2,6 @@ package org.lokrusta.sqlprometheus.exec;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -12,20 +10,57 @@ import java.util.Map;
 import java.util.NoSuchElementException;
 
 public class PrometheusRowIterator implements Iterator<Object[]> {
-    public static final int MAX_ROWS = 1000;
+    public static final int DEFAULT_MAX_ROWS = 1000;
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
     private final List<Object[]> rows;
+    private final int maxRows;
     private int index;
     private int returned;
 
-    public PrometheusRowIterator(String metric,
-                                 List<String> labelColumns,
-                                 Map<String, String> labelFilters,
-                                 long startMillis,
-                                 long endMillis) {
-        this.rows = readRows(metric, labelColumns, labelFilters, startMillis, endMillis);
+    private PrometheusRowIterator(List<Object[]> rows, int maxRows) {
+        this.rows = rows;
+        this.maxRows = maxRows;
+    }
+
+    public static PrometheusRowIterator query(String baseUrl,
+                                             String metric,
+                                             List<String> labelColumns,
+                                             Map<String, String> labelFilters,
+                                             long startMillis,
+                                             long endMillis,
+                                             int maxRows,
+                                             String step,
+                                             int connectTimeoutSeconds,
+                                             int queryTimeoutSeconds) {
+        String json = PrometheusClient.queryRange(
+                baseUrl, metric, labelFilters, startMillis, endMillis, step, connectTimeoutSeconds, queryTimeoutSeconds);
+        return fromJson(json, labelColumns, labelFilters, startMillis, endMillis, maxRows);
+    }
+
+    public static PrometheusRowIterator fromJson(String json,
+                                                 List<String> labelColumns,
+                                                 long startMillis,
+                                                 long endMillis) {
+        return fromJson(json, labelColumns, startMillis, endMillis, DEFAULT_MAX_ROWS);
+    }
+
+    public static PrometheusRowIterator fromJson(String json,
+                                                 List<String> labelColumns,
+                                                 long startMillis,
+                                                 long endMillis,
+                                                 int maxRows) {
+        return fromJson(json, labelColumns, Map.of(), startMillis, endMillis, maxRows);
+    }
+
+    private static PrometheusRowIterator fromJson(String json,
+                                                  List<String> labelColumns,
+                                                  Map<String, String> labelFilters,
+                                                  long startMillis,
+                                                  long endMillis,
+                                                  int maxRows) {
+        return new PrometheusRowIterator(parse(json, labelColumns, labelFilters, startMillis, endMillis), maxRows);
     }
 
     @Override
@@ -39,19 +74,22 @@ public class PrometheusRowIterator implements Iterator<Object[]> {
             throw new NoSuchElementException();
         }
         returned++;
-        if (returned > MAX_ROWS) {
-            throw new RuntimeException("Запрос заблокирован: превышен лимит строк для защиты памяти");
+        if (returned > maxRows) {
+            throw new RuntimeException("Запрос заблокирован: превышен лимит строк для защиты памяти (" + maxRows + ")");
         }
         return rows.get(index++);
     }
 
-    private static List<Object[]> readRows(String metric,
-                                           List<String> labelColumns,
-                                           Map<String, String> labelFilters,
-                                           long startMillis,
-                                           long endMillis) {
+    private static List<Object[]> parse(String json,
+                                        List<String> labelColumns,
+                                        Map<String, String> labelFilters,
+                                        long startMillis,
+                                        long endMillis) {
         try {
-            JsonNode root = MAPPER.readTree(responseJson(metric, labelFilters, startMillis, endMillis));
+            JsonNode root = MAPPER.readTree(json);
+            if (!"success".equals(root.path("status").asText())) {
+                throw new IllegalStateException("Prometheus error: " + root.path("error").asText(json));
+            }
             List<Object[]> parsed = new ArrayList<>();
             for (JsonNode series : root.path("data").path("result")) {
                 JsonNode labels = series.path("metric");
@@ -59,7 +97,7 @@ public class PrometheusRowIterator implements Iterator<Object[]> {
                     continue;
                 }
                 for (JsonNode sample : series.path("values")) {
-                    long timestamp = sample.get(0).asLong();
+                    long timestamp = Math.round(sample.get(0).asDouble() * 1000.0);
                     if (timestamp < startMillis || timestamp > endMillis) {
                         continue;
                     }
@@ -87,62 +125,5 @@ public class PrometheusRowIterator implements Iterator<Object[]> {
             }
         }
         return true;
-    }
-
-    private static String responseJson(String metric,
-                                       Map<String, String> labelFilters,
-                                       long startMillis,
-                                       long endMillis) throws Exception {
-        ObjectNode root = MAPPER.createObjectNode();
-        root.put("status", "success");
-        ObjectNode data = root.putObject("data");
-        data.put("resultType", "matrix");
-        ArrayNode result = data.putArray("result");
-        if ("node_cpu_seconds_total".equals(metric) && labelFilters.isEmpty()) {
-            addSeries(result, Map.of("instance", "10.0.0.5:9100", "mode", "idle"),
-                    samples(startMillis, endMillis, MAX_ROWS + 1, 1.0));
-        } else if ("node_cpu_seconds_total".equals(metric)) {
-            long step = Math.max(1L, (endMillis - startMillis) / 4);
-            addSeries(result, Map.of("instance", "10.0.0.5:9100", "mode", "idle"), List.of(
-                    sample(startMillis, "2.0"),
-                    sample(startMillis + step, "4.0"),
-                    sample(startMillis + 2 * step, "6.0")));
-            addSeries(result, Map.of("instance", "10.0.0.5:9100", "mode", "user"), List.of(
-                    sample(startMillis, "100.0")));
-            addSeries(result, Map.of("instance", "10.0.0.9:9100", "mode", "idle"), List.of(
-                    sample(startMillis, "8.0")));
-        } else {
-            addSeries(result, Map.of("host_ip", "10.0.0.5", "pod_name", "nginx"), List.of(
-                    sample(startMillis, "1.0")));
-            addSeries(result, Map.of("host_ip", "10.0.0.8", "pod_name", "redis"), List.of(
-                    sample(startMillis, "1.0")));
-        }
-        return MAPPER.writeValueAsString(root);
-    }
-
-    private static void addSeries(ArrayNode result, Map<String, String> labels, List<double[]> samples) {
-        ObjectNode series = result.addObject();
-        ObjectNode metric = series.putObject("metric");
-        labels.forEach(metric::put);
-        ArrayNode values = series.putArray("values");
-        for (double[] sample : samples) {
-            ArrayNode pair = values.addArray();
-            pair.add((long) sample[0]);
-            pair.add(Double.toString(sample[1]));
-        }
-    }
-
-    private static List<double[]> samples(long startMillis, long endMillis, int count, double value) {
-        List<double[]> samples = new ArrayList<>(count);
-        long span = Math.max(1L, endMillis - startMillis);
-        for (int i = 0; i < count; i++) {
-            long timestamp = startMillis + (span * i) / count;
-            samples.add(sample(timestamp, Double.toString(value)));
-        }
-        return samples;
-    }
-
-    private static double[] sample(long timestamp, String value) {
-        return new double[]{timestamp, Double.parseDouble(value)};
     }
 }

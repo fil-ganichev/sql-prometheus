@@ -92,7 +92,8 @@ public class PrometheusTable extends AbstractTable implements ScannableTable, Tr
     @Override
     public Enumerable<Object[]> scan(DataContext root) {
         return query(baseUrl, metric, String.join(",", labelColumns), "", null, null,
-                options.maxRows(), options.step(), options.connectTimeoutSeconds(), options.queryTimeoutSeconds());
+                options.maxRows(), options.step(), options.connectTimeoutSeconds(), options.queryTimeoutSeconds(),
+                null, null);
     }
 
     @Override
@@ -109,7 +110,9 @@ public class PrometheusTable extends AbstractTable implements ScannableTable, Tr
                                              int maxRows,
                                              String step,
                                              int connectTimeoutSeconds,
-                                             int queryTimeoutSeconds) {
+                                             int queryTimeoutSeconds,
+                                             String promFunction,
+                                             String promWindow) {
         long end = endMillis != null ? endMillis : System.currentTimeMillis();
         long start = startMillis != null ? startMillis : end - DEFAULT_RANGE_MILLIS;
         List<String> columns = labelColumns == null || labelColumns.isEmpty()
@@ -121,7 +124,7 @@ public class PrometheusTable extends AbstractTable implements ScannableTable, Tr
             public Enumerator<Object[]> enumerator() {
                 PrometheusRowIterator rows = PrometheusRowIterator.query(
                         baseUrl, metric, columns, labelFilters, start, end, maxRows,
-                        step, connectTimeoutSeconds, queryTimeoutSeconds);
+                        step, connectTimeoutSeconds, queryTimeoutSeconds, promFunction, promWindow);
                 return new Enumerator<>() {
                     private Object[] current;
 

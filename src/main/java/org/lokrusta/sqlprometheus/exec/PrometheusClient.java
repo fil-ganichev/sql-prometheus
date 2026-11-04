@@ -25,8 +25,10 @@ public final class PrometheusClient {
                                     long endMillis,
                                     String step,
                                     int connectTimeoutSeconds,
-                                    int queryTimeoutSeconds) {
-        String query = selector(metric, labelFilters);
+                                    int queryTimeoutSeconds,
+                                    String promFunction,
+                                    String promWindow) {
+        String query = selector(metric, labelFilters, promFunction, promWindow);
         String url = stripSlash(baseUrl) + "/api/v1/query_range?query=" + encode(query)
                 + "&start=" + seconds(startMillis)
                 + "&end=" + seconds(endMillis)
@@ -52,14 +54,21 @@ public final class PrometheusClient {
         }
     }
 
-    private static String selector(String metric, Map<String, String> labelFilters) {
-        if (labelFilters == null || labelFilters.isEmpty()) {
-            return metric;
+    private static String selector(String metric,
+                                   Map<String, String> labelFilters,
+                                   String promFunction,
+                                   String promWindow) {
+        String series = metric;
+        if (labelFilters != null && !labelFilters.isEmpty()) {
+            String labels = labelFilters.entrySet().stream()
+                    .map(entry -> entry.getKey() + "=\"" + escape(entry.getValue()) + "\"")
+                    .collect(Collectors.joining(","));
+            series = metric + "{" + labels + "}";
         }
-        String labels = labelFilters.entrySet().stream()
-                .map(entry -> entry.getKey() + "=\"" + escape(entry.getValue()) + "\"")
-                .collect(Collectors.joining(","));
-        return metric + "{" + labels + "}";
+        if (promFunction == null || promFunction.isEmpty()) {
+            return series;
+        }
+        return promFunction + "(" + series + "[" + promWindow + "])";
     }
 
     private static String escape(String value) {

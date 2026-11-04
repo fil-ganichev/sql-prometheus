@@ -33,9 +33,12 @@ public class PrometheusRowIterator implements Iterator<Object[]> {
                                              int maxRows,
                                              String step,
                                              int connectTimeoutSeconds,
-                                             int queryTimeoutSeconds) {
+                                             int queryTimeoutSeconds,
+                                             String promFunction,
+                                             String promWindow) {
         String json = PrometheusClient.queryRange(
-                baseUrl, metric, labelFilters, startMillis, endMillis, step, connectTimeoutSeconds, queryTimeoutSeconds);
+                baseUrl, metric, labelFilters, startMillis, endMillis, step, connectTimeoutSeconds, queryTimeoutSeconds,
+                promFunction, promWindow);
         return fromJson(json, labelColumns, labelFilters, startMillis, endMillis, maxRows);
     }
 

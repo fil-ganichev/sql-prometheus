@@ -92,6 +92,42 @@ class PrometheusJdbcIntegrationTest {
     }
 
     @Test
+    void prometheusFunctionsOnLiveNodeCpu() throws Exception {
+        String url = "jdbc:prometheus://localhost:" + PROMETHEUS.getMappedPort(PROMETHEUS_PORT);
+        String[][] functions = {
+                {"PROM_RATE", "rate"},
+                {"PROM_IRATE", "irate"},
+                {"PROM_INCREASE", "increase"},
+                {"PROM_DELTA", "delta"},
+                {"PROM_IDELTA", "idelta"},
+                {"PROM_CHANGES", "changes"}
+        };
+        try (Connection connection = DriverManager.getConnection(url);
+             Statement statement = connection.createStatement()) {
+            for (String[] function : functions) {
+                String sql = """
+                        SELECT SUM(%s("value", '1m'))
+                        FROM node_cpu_seconds_total
+                        WHERE mode = 'idle'
+                          AND "timestamp" > NOW() - INTERVAL '5' MINUTE
+                        """.formatted(function[0]);
+                String plan = PrometheusDriverTest.pushedPlan(PrometheusDriverTest.logicalPlan(sql));
+                assertTrue(plan.contains("function=[" + function[1] + "]"), plan);
+                assertTrue(plan.contains("window=[1m]"), plan);
+                assertTrue(plan.contains("start=["), plan);
+                assertFalse(plan.contains(function[0]), plan);
+                try (ResultSet resultSet = statement.executeQuery(sql)) {
+                    assertTrue(resultSet.next(), function[0]);
+                    double value = resultSet.getDouble(1);
+                    assertFalse(resultSet.wasNull(), function[0]);
+                    assertTrue(Double.isFinite(value) && value > 0, function[0] + "=" + value);
+                    assertFalse(resultSet.next(), function[0]);
+                }
+            }
+        }
+    }
+
+    @Test
     void joinContainerCpuShareOnLivePrometheus() throws Exception {
         RelNode logical = PrometheusDriverTest.logicalPlan(PrometheusDriverTest.CPU_SHARE_SQL);
         String plan = PrometheusDriverTest.pushedPlan(logical);

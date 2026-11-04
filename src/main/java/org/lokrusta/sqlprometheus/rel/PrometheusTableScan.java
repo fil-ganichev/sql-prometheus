@@ -20,6 +20,8 @@ public class PrometheusTableScan extends TableScan {
     private final Map<String, String> labelFilters;
     private final Long startMillis;
     private final Long endMillis;
+    private final String promFunction;
+    private final String promWindow;
 
     public PrometheusTableScan(RelOptCluster cluster,
                                RelTraitSet traitSet,
@@ -27,12 +29,16 @@ public class PrometheusTableScan extends TableScan {
                                PrometheusTable prometheusTable,
                                Map<String, String> labelFilters,
                                Long startMillis,
-                               Long endMillis) {
+                               Long endMillis,
+                               String promFunction,
+                               String promWindow) {
         super(cluster, traitSet, ImmutableList.of(), table);
         this.prometheusTable = prometheusTable;
         this.labelFilters = Map.copyOf(labelFilters);
         this.startMillis = startMillis;
         this.endMillis = endMillis;
+        this.promFunction = promFunction;
+        this.promWindow = promWindow;
     }
 
     public static PrometheusTableScan create(RelOptCluster cluster,
@@ -44,6 +50,8 @@ public class PrometheusTableScan extends TableScan {
                 table,
                 prometheusTable,
                 Map.of(),
+                null,
+                null,
                 null,
                 null);
     }
@@ -64,6 +72,14 @@ public class PrometheusTableScan extends TableScan {
         return endMillis;
     }
 
+    public String getPromFunction() {
+        return promFunction;
+    }
+
+    public String getPromWindow() {
+        return promWindow;
+    }
+
     public PrometheusTableScan withFilters(Map<String, String> labelFilters, Long startMillis, Long endMillis) {
         Map<String, String> merged = new LinkedHashMap<>(this.labelFilters);
         merged.putAll(labelFilters);
@@ -74,7 +90,22 @@ public class PrometheusTableScan extends TableScan {
                 prometheusTable,
                 merged,
                 startMillis,
-                endMillis);
+                endMillis,
+                promFunction,
+                promWindow);
+    }
+
+    public PrometheusTableScan withFunction(String promFunction, String promWindow) {
+        return new PrometheusTableScan(
+                getCluster(),
+                getCluster().traitSetOf(Convention.NONE),
+                getTable(),
+                prometheusTable,
+                labelFilters,
+                startMillis,
+                endMillis,
+                promFunction,
+                promWindow);
     }
 
     public String filterSpec() {
@@ -97,7 +128,9 @@ public class PrometheusTableScan extends TableScan {
                 prometheusTable,
                 labelFilters,
                 startMillis,
-                endMillis);
+                endMillis,
+                promFunction,
+                promWindow);
     }
 
     @Override
@@ -105,6 +138,8 @@ public class PrometheusTableScan extends TableScan {
         return super.explainTerms(pw)
                 .itemIf("filters", labelFilters, !labelFilters.isEmpty())
                 .itemIf("start", startMillis, startMillis != null)
-                .itemIf("end", endMillis, endMillis != null);
+                .itemIf("end", endMillis, endMillis != null)
+                .itemIf("function", promFunction, promFunction != null)
+                .itemIf("window", promWindow, promWindow != null);
     }
 }

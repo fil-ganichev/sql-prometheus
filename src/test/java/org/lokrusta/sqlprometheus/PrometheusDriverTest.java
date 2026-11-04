@@ -6,8 +6,6 @@ import org.apache.calcite.plan.hep.HepPlanner;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.sql.SqlNode;
-import org.apache.calcite.sql.fun.SqlLibrary;
-import org.apache.calcite.sql.fun.SqlLibraryOperatorTableFactory;
 import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.tools.Frameworks;
 import org.apache.calcite.tools.Planner;
@@ -18,8 +16,10 @@ import org.lokrusta.sqlprometheus.driver.PrometheusParserFactory;
 import org.lokrusta.sqlprometheus.exec.PrometheusRowIterator;
 import org.lokrusta.sqlprometheus.plan.PrometheusPrograms;
 import org.lokrusta.sqlprometheus.schema.PrometheusSchema;
+import org.lokrusta.sqlprometheus.sql.PrometheusSqlOperatorTable;
 
 import java.net.InetSocketAddress;
+import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.util.concurrent.atomic.AtomicReference;
 import java.sql.Connection;
@@ -222,6 +222,85 @@ class PrometheusDriverTest {
     }
 
     @Test
+    void functionKeepsTimeFilter() throws Exception {
+        String sql = """
+                SELECT PROM_RATE("value", '5m')
+                FROM node_cpu_seconds_total
+                WHERE mode = 'idle'
+                  AND "timestamp" > TIMESTAMP '2026-01-01 00:00:00'
+                """;
+        String plan = pushedPlan(logicalPlan(sql));
+        assertTrue(plan.contains("function=[rate]"), plan);
+        assertTrue(plan.contains("window=[5m]"), plan);
+        assertTrue(plan.contains("start=["), plan);
+        assertTrue(plan.contains("mode=idle"), plan);
+        assertFalse(plan.contains("PROM_RATE"), plan);
+
+        String summed = pushedPlan(logicalPlan("""
+                SELECT SUM(PROM_RATE("value", '1m'))
+                FROM node_cpu_seconds_total
+                WHERE mode = 'idle'
+                  AND "timestamp" > NOW() - INTERVAL '5' MINUTE
+                """));
+        assertTrue(summed.contains("function=[rate]"), summed);
+        assertTrue(summed.contains("window=[1m]"), summed);
+        assertTrue(summed.contains("start=["), summed);
+        assertFalse(summed.contains("PROM_RATE"), summed);
+    }
+
+    @Test
+    void functionsReachPrometheusQuery() throws Exception {
+        Class.forName("org.lokrusta.sqlprometheus.driver.PrometheusDriver");
+        long now = System.currentTimeMillis() / 1000;
+        String body = "{\"status\":\"success\",\"data\":{\"resultType\":\"matrix\",\"result\":["
+                + "{\"metric\":{\"instance\":\"localhost\",\"mode\":\"idle\"},\"values\":[[" + now + ",\"1\"]]}]}}";
+        AtomicReference<String> query = new AtomicReference<>();
+        HttpServer server = HttpServer.create(new InetSocketAddress("localhost", 0), 0);
+        server.createContext("/api/v1/query_range", exchange -> {
+            query.set(exchange.getRequestURI().getRawQuery());
+            byte[] bytes = body.getBytes(StandardCharsets.UTF_8);
+            exchange.sendResponseHeaders(200, bytes.length);
+            exchange.getResponseBody().write(bytes);
+            exchange.close();
+        });
+        server.start();
+        try {
+            String url = "jdbc:prometheus://localhost:" + server.getAddress().getPort();
+            String[][] functions = {
+                    {"PROM_RATE", "rate"},
+                    {"PROM_IRATE", "irate"},
+                    {"PROM_INCREASE", "increase"},
+                    {"PROM_DELTA", "delta"},
+                    {"PROM_IDELTA", "idelta"},
+                    {"PROM_CHANGES", "changes"}
+            };
+            try (Connection connection = DriverManager.getConnection(url);
+                 Statement statement = connection.createStatement()) {
+                for (String[] function : functions) {
+                    statement.executeQuery("""
+                            SELECT %s("value", '5m')
+                            FROM node_cpu_seconds_total
+                            WHERE mode = 'idle'
+                              AND "timestamp" > TIMESTAMP '2026-01-01 00:00:00'
+                            """.formatted(function[0])).close();
+                    String raw = URLDecoder.decode(query.get(), StandardCharsets.UTF_8);
+                    assertTrue(raw.contains(function[1] + "(node_cpu_seconds_total{mode=\"idle\"}[5m])"), raw);
+                }
+                statement.executeQuery("""
+                        SELECT SUM(PROM_RATE("value", '1m'))
+                        FROM node_cpu_seconds_total
+                        WHERE mode = 'idle'
+                          AND "timestamp" > TIMESTAMP '2026-01-01 00:00:00'
+                        """).close();
+                String summed = URLDecoder.decode(query.get(), StandardCharsets.UTF_8);
+                assertTrue(summed.contains("rate(node_cpu_seconds_total{mode=\"idle\"}[1m])"), summed);
+            }
+        } finally {
+            server.stop(0);
+        }
+    }
+
+    @Test
     void timeFilterReachesBothScans() throws Exception {
         String afterPlan = pushedPlan(logicalPlan(CPU_SHARE_SQL));
         System.out.println(afterPlan);
@@ -240,11 +319,10 @@ class PrometheusDriverTest {
 
     static RelNode logicalPlan(String sql) throws RelConversionException, ValidationException, org.apache.calcite.sql.parser.SqlParseException {
         SchemaPlus root = Frameworks.createRootSchema(true);
-        SchemaPlus prometheus = root.add("prometheus", new PrometheusSchema("http://localhost"));
+        SchemaPlus prometheus = root.add("prometheus", PrometheusSchema.withoutFunctions("http://localhost"));
         Planner planner = Frameworks.getPlanner(Frameworks.newConfigBuilder()
                 .defaultSchema(prometheus)
-                .operatorTable(SqlLibraryOperatorTableFactory.INSTANCE.getOperatorTable(
-                        SqlLibrary.STANDARD, SqlLibrary.MYSQL))
+                .operatorTable(PrometheusSqlOperatorTable.INSTANCE)
                 .parserConfig(SqlParser.config()
                         .withParserFactory(PrometheusParserFactory.INSTANCE)
                         .withCaseSensitive(false)

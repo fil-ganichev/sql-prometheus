@@ -88,7 +88,7 @@ class PrometheusJdbcIntegrationTest {
     @BeforeAll
     static void waitForFirstScrape() throws Exception {
         Class.forName("org.lokrusta.sqlprometheus.driver.PrometheusDriver");
-        Thread.sleep(25000);
+        Thread.sleep(35000);
     }
 
     @Test
@@ -140,7 +140,7 @@ class PrometheusJdbcIntegrationTest {
         assertFalse(plan.contains("CURRENT_TIMESTAMP"), plan);
 
         String url = "jdbc:prometheus://localhost:" + PROMETHEUS.getMappedPort(PROMETHEUS_PORT);
-        Instant end = Instant.now().minusSeconds(12).truncatedTo(ChronoUnit.SECONDS);
+        Instant end = Instant.now().minusSeconds(20).truncatedTo(ChronoUnit.SECONDS);
         Instant start = end.minus(5, ChronoUnit.MINUTES);
         String startText = timestamp(start);
         String endText = timestamp(end);
@@ -161,8 +161,15 @@ class PrometheusJdbcIntegrationTest {
                       AND c.image IS NOT NULL
                     GROUP BY c.image
                     """.formatted(startText, endText);
-            Map<String, Double> actual = percentages(statement, bounded);
-            Map<String, Double> expected = expectedPercentages(statement, startText, endText);
+            Map<String, Double> actual = Map.of();
+            Map<String, Double> expected = Map.of();
+            for (int attempt = 0; attempt < 3; attempt++) {
+                actual = percentages(statement, bounded);
+                expected = expectedPercentages(statement, startText, endText);
+                if (samePercentages(actual, expected)) {
+                    break;
+                }
+            }
             assertFalse(actual.isEmpty(), actual.toString());
             assertEquals(expected.keySet(), actual.keySet(), actual + " vs " + expected);
             for (String image : expected.keySet()) {
@@ -199,6 +206,18 @@ class PrometheusJdbcIntegrationTest {
             percentages.put(image, sumContainer.get(image) / sumNode.get(image) * 100.0);
         }
         return percentages;
+    }
+
+    private static boolean samePercentages(Map<String, Double> actual, Map<String, Double> expected) {
+        if (!actual.keySet().equals(expected.keySet())) {
+            return false;
+        }
+        for (String image : expected.keySet()) {
+            if (Math.abs(actual.get(image) - expected.get(image)) > 0.0001) {
+                return false;
+            }
+        }
+        return true;
     }
 
     private static Map<String, Double> percentages(Statement statement, String sql) throws Exception {

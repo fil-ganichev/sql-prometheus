@@ -5,6 +5,7 @@ import org.apache.calcite.plan.RelRule;
 import org.apache.calcite.plan.hep.HepRelVertex;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.logical.LogicalFilter;
+import org.apache.calcite.rel.logical.LogicalJoin;
 import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexInputRef;
@@ -16,7 +17,9 @@ import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.lokrusta.sqlprometheus.sql.PrometheusSqlOperatorTable;
 
 import java.util.ArrayList;
+import java.util.IdentityHashMap;
 import java.util.List;
+import java.util.Map;
 
 public class PrometheusFunctionPushDownRule extends RelRule<RelRule.Config> {
     private static final class Config extends FixedOperandConfig {
@@ -47,13 +50,15 @@ public class PrometheusFunctionPushDownRule extends RelRule<RelRule.Config> {
         for (RexNode expression : project.getProjects()) {
             projects.add(expression.accept(rewriter));
         }
-        if (!rewriter.saw || rewriter.conflict || rewriter.scan == null) {
+        if (!rewriter.saw || rewriter.conflict || rewriter.assignments.isEmpty()) {
             return;
         }
-        PrometheusTableScan pushed = rewriter.scan.withFunction(rewriter.function, rewriter.window);
+        Map<PrometheusTableScan, PrometheusTableScan> replacements = new IdentityHashMap<>();
+        rewriter.assignments.forEach((scan, assignment) ->
+                replacements.put(scan, scan.withFunction(assignment.function, assignment.window)));
         call.transformTo(project.copy(
                 project.getTraitSet(),
-                replaceScan(project.getInput(), pushed),
+                replaceScans(project.getInput(), replacements),
                 projects,
                 project.getRowType()));
     }
@@ -79,23 +84,50 @@ public class PrometheusFunctionPushDownRule extends RelRule<RelRule.Config> {
                 && project.getProjects().get(index) instanceof RexInputRef ref) {
             return resolve(project.getInput(), ref.getIndex());
         }
+        if (node instanceof LogicalJoin join) {
+            RelNode left = unwrap(join.getLeft());
+            int leftCount = left.getRowType().getFieldCount();
+            if (index < leftCount) {
+                return resolve(left, index);
+            }
+            return resolve(join.getRight(), index - leftCount);
+        }
         return null;
     }
 
-    private static RelNode replaceScan(RelNode node, PrometheusTableScan scan) {
+    private static RelNode replaceScans(RelNode node, Map<PrometheusTableScan, PrometheusTableScan> replacements) {
         node = unwrap(node);
-        if (node instanceof PrometheusTableScan) {
-            return scan;
+        if (node instanceof PrometheusTableScan scan) {
+            PrometheusTableScan pushed = replacements.get(scan);
+            return pushed != null ? pushed : node;
         }
         if (node instanceof LogicalFilter filter) {
-            return filter.copy(filter.getTraitSet(), replaceScan(filter.getInput(), scan), filter.getCondition());
+            RelNode input = replaceScans(filter.getInput(), replacements);
+            if (input == unwrap(filter.getInput())) {
+                return node;
+            }
+            return filter.copy(filter.getTraitSet(), input, filter.getCondition());
         }
         if (node instanceof LogicalProject project) {
-            return project.copy(
-                    project.getTraitSet(),
-                    replaceScan(project.getInput(), scan),
-                    project.getProjects(),
-                    project.getRowType());
+            RelNode input = replaceScans(project.getInput(), replacements);
+            if (input == unwrap(project.getInput())) {
+                return node;
+            }
+            return project.copy(project.getTraitSet(), input, project.getProjects(), project.getRowType());
+        }
+        if (node instanceof LogicalJoin join) {
+            RelNode left = replaceScans(join.getLeft(), replacements);
+            RelNode right = replaceScans(join.getRight(), replacements);
+            if (left == unwrap(join.getLeft()) && right == unwrap(join.getRight())) {
+                return node;
+            }
+            return join.copy(
+                    join.getTraitSet(),
+                    join.getCondition(),
+                    left,
+                    right,
+                    join.getJoinType(),
+                    join.isSemiJoinDone());
         }
         return node;
     }
@@ -110,11 +142,19 @@ public class PrometheusFunctionPushDownRule extends RelRule<RelRule.Config> {
         }
     }
 
+    private static final class Assignment {
+        private final String function;
+        private final String window;
+
+        private Assignment(String function, String window) {
+            this.function = function;
+            this.window = window;
+        }
+    }
+
     private static final class Rewriter extends RexShuttle {
         private final RelNode input;
-        private PrometheusTableScan scan;
-        private String function;
-        private String window;
+        private final Map<PrometheusTableScan, Assignment> assignments = new IdentityHashMap<>();
         private boolean saw;
         private boolean conflict;
 
@@ -135,15 +175,10 @@ public class PrometheusFunctionPushDownRule extends RelRule<RelRule.Config> {
                 conflict = true;
                 return super.visitCall(call);
             }
-            if (scan == null) {
-                scan = target.scan;
-            } else if (scan != target.scan) {
-                conflict = true;
-            }
-            if (function == null) {
-                function = promql;
-                window = literal;
-            } else if (!function.equals(promql) || !window.equals(literal)) {
+            Assignment existing = assignments.get(target.scan);
+            if (existing == null) {
+                assignments.put(target.scan, new Assignment(promql, literal));
+            } else if (!existing.function.equals(promql) || !existing.window.equals(literal)) {
                 conflict = true;
             }
             saw = true;

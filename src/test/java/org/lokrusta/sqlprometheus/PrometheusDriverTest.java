@@ -249,6 +249,79 @@ class PrometheusDriverTest {
     }
 
     @Test
+    void flatJoinPushesFunctionIntoItsScan() throws Exception {
+        String sql = """
+                SELECT
+                    c.image,
+                    AVG(PROM_RATE(c.value, '5m')) AS avg_rate,
+                    AVG(n.value) AS avg_node
+                FROM container_cpu_usage_seconds_total c
+                JOIN node_cpu_seconds_total n ON c.instance = n.instance
+                WHERE c.timestamp > NOW() - INTERVAL '5' MINUTE
+                  AND c.image IS NOT NULL
+                GROUP BY c.image
+                """;
+        RelNode before = logicalPlan(sql);
+        String beforePlan = RelOptUtil.toString(before);
+        String afterPlan = pushedPlan(before);
+        System.out.println("flat join before optimizations");
+        System.out.println(beforePlan);
+        System.out.println("flat join after optimizations");
+        System.out.println(afterPlan);
+
+        assertTrue(beforePlan.contains("PROM_RATE($1, '5m')"), beforePlan);
+        assertFalse(beforePlan.contains("function=["), beforePlan);
+        assertEquals(2, count(afterPlan, "PrometheusTableScan"), afterPlan);
+        assertEquals(2, count(afterPlan, "start=["), afterPlan);
+        assertEquals(1, count(afterPlan, "function=[rate]"), afterPlan);
+        assertEquals(1, count(afterPlan, "window=[5m]"), afterPlan);
+        assertTrue(afterPlan.contains("avg_rate=[AVG($1)]"), afterPlan);
+        assertTrue(afterPlan.contains("avg_node=[AVG($2)]"), afterPlan);
+        assertFalse(afterPlan.contains("PROM_RATE"), afterPlan);
+        int container = afterPlan.indexOf("container_cpu_usage_seconds_total");
+        int node = afterPlan.indexOf("node_cpu_seconds_total");
+        assertTrue(container >= 0 && node > container, afterPlan);
+        assertTrue(afterPlan.substring(container, node).contains("function=[rate]"), afterPlan);
+        assertFalse(afterPlan.substring(node).contains("function="), afterPlan);
+    }
+
+    @Test
+    void flatJoinPushesEachSideFunctionIntoItsScan() throws Exception {
+        String sql = """
+                SELECT
+                    c.image,
+                    AVG(PROM_RATE(c.value, '5m')) AS avg_rate,
+                    AVG(PROM_IRATE(n.value, '1m')) AS avg_node
+                FROM container_cpu_usage_seconds_total c
+                JOIN node_cpu_seconds_total n ON c.instance = n.instance
+                WHERE c.timestamp > NOW() - INTERVAL '5' MINUTE
+                GROUP BY c.image
+                """;
+        RelNode before = logicalPlan(sql);
+        String beforePlan = RelOptUtil.toString(before);
+        String afterPlan = pushedPlan(before);
+        System.out.println("flat join both functions before optimizations");
+        System.out.println(beforePlan);
+        System.out.println("flat join both functions after optimizations");
+        System.out.println(afterPlan);
+
+        assertTrue(beforePlan.contains("PROM_RATE($1, '5m')"), beforePlan);
+        assertTrue(beforePlan.contains("PROM_IRATE($5, '1m')"), beforePlan);
+        assertFalse(afterPlan.contains("PROM_RATE"), afterPlan);
+        assertFalse(afterPlan.contains("PROM_IRATE"), afterPlan);
+        int container = afterPlan.indexOf("container_cpu_usage_seconds_total");
+        int node = afterPlan.indexOf("node_cpu_seconds_total");
+        assertTrue(container >= 0 && node > container, afterPlan);
+        String containerScan = afterPlan.substring(container, node);
+        String nodeScan = afterPlan.substring(node);
+        assertTrue(containerScan.contains("function=[rate]"), afterPlan);
+        assertTrue(containerScan.contains("window=[5m]"), afterPlan);
+        assertTrue(nodeScan.contains("function=[irate]"), afterPlan);
+        assertTrue(nodeScan.contains("window=[1m]"), afterPlan);
+        assertEquals(2, count(afterPlan, "start=["), afterPlan);
+    }
+
+    @Test
     void functionsReachPrometheusQuery() throws Exception {
         Class.forName("org.lokrusta.sqlprometheus.driver.PrometheusDriver");
         long now = System.currentTimeMillis() / 1000;

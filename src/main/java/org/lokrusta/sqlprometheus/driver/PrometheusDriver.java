@@ -1,6 +1,7 @@
 package org.lokrusta.sqlprometheus.driver;
 
 import org.apache.calcite.runtime.Hook;
+import org.apache.calcite.sql2rel.SqlToRelConverter;
 import org.apache.calcite.tools.Program;
 import org.apache.calcite.util.Holder;
 import org.lokrusta.sqlprometheus.exec.PrometheusOptions;
@@ -23,6 +24,11 @@ public class PrometheusDriver extends org.apache.calcite.jdbc.Driver {
     static {
         Consumer<Holder<Program>> program = holder -> holder.set(PrometheusPrograms.create());
         Hook.PROGRAM.add(program);
+        // Calcite 1.38 rebuilds PERCENTILE_CONT while trimming unused fields and crashes
+        // in SqlOperatorBinding.getCollationType. The scan still returns its columns.
+        Consumer<Holder<SqlToRelConverter.Config>> keepPercentile = holder ->
+                holder.set(holder.get().withTrimUnusedFields(false));
+        Hook.SQL2REL_CONVERTER_CONFIG_BUILDER.add(keepPercentile);
         deregisterStockCalciteDriver();
         new PrometheusDriver().register();
     }

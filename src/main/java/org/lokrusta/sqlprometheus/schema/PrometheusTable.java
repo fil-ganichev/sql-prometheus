@@ -52,6 +52,14 @@ public class PrometheusTable extends AbstractTable implements ScannableTable, Tr
         return new PrometheusTable(baseUrl, "container_cpu_usage_seconds_total", List.of("instance", "image"), options);
     }
 
+    public static PrometheusTable requestDuration(String baseUrl, PrometheusOptions options) {
+        return new PrometheusTable(
+                baseUrl,
+                "http_request_duration_seconds_bucket",
+                List.of("service_name", "le", "instance"),
+                options);
+    }
+
     public String baseUrl() {
         return baseUrl;
     }
@@ -74,7 +82,8 @@ public class PrometheusTable extends AbstractTable implements ScannableTable, Tr
         builder.add("timestamp", SqlTypeName.TIMESTAMP);
         builder.add("value", SqlTypeName.DOUBLE);
         for (String label : labelColumns) {
-            builder.add(label, typeFactory.createSqlType(SqlTypeName.VARCHAR));
+            SqlTypeName type = "le".equals(label) ? SqlTypeName.DOUBLE : SqlTypeName.VARCHAR;
+            builder.add(label, typeFactory.createSqlType(type));
         }
         return builder.build();
     }
@@ -93,7 +102,7 @@ public class PrometheusTable extends AbstractTable implements ScannableTable, Tr
     public Enumerable<Object[]> scan(DataContext root) {
         return query(baseUrl, metric, String.join(",", labelColumns), "", null, null,
                 options.maxRows(), options.step(), options.connectTimeoutSeconds(), options.queryTimeoutSeconds(),
-                null, null);
+                null, null, null, null, null, null);
     }
 
     @Override
@@ -112,7 +121,11 @@ public class PrometheusTable extends AbstractTable implements ScannableTable, Tr
                                              int connectTimeoutSeconds,
                                              int queryTimeoutSeconds,
                                              String promFunction,
-                                             String promWindow) {
+                                             String promWindow,
+                                             String rateWindow,
+                                             String quantilePhi,
+                                             String quantileBy,
+                                             String scalars) {
         long end = endMillis != null ? endMillis : System.currentTimeMillis();
         long start = startMillis != null ? startMillis : end - DEFAULT_RANGE_MILLIS;
         List<String> columns = labelColumns == null || labelColumns.isEmpty()
@@ -124,7 +137,8 @@ public class PrometheusTable extends AbstractTable implements ScannableTable, Tr
             public Enumerator<Object[]> enumerator() {
                 PrometheusRowIterator rows = PrometheusRowIterator.query(
                         baseUrl, metric, columns, labelFilters, start, end, maxRows,
-                        step, connectTimeoutSeconds, queryTimeoutSeconds, promFunction, promWindow);
+                        step, connectTimeoutSeconds, queryTimeoutSeconds,
+                        promFunction, promWindow, rateWindow, quantilePhi, quantileBy, scalars);
                 return new Enumerator<>() {
                     private Object[] current;
 

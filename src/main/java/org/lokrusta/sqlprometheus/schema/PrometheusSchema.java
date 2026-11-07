@@ -52,6 +52,7 @@ public class PrometheusSchema extends AbstractSchema {
         return Map.of(
                 "node_cpu_seconds_total", PrometheusTable.cpu(baseUrl, options),
                 "container_cpu_usage_seconds_total", PrometheusTable.containerCpu(baseUrl, options),
-                "kube_pod_info", PrometheusTable.podInfo(baseUrl, options));
+                "kube_pod_info", PrometheusTable.podInfo(baseUrl, options),
+                "http_request_duration_seconds_bucket", PrometheusTable.requestDuration(baseUrl, options));
     }
 }

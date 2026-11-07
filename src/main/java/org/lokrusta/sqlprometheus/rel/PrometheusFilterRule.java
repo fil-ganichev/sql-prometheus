@@ -15,6 +15,7 @@ import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.TimestampString;
 import org.apache.calcite.util.TimestampWithTimeZoneString;
+import org.lokrusta.sqlprometheus.sql.PrometheusSqlOperatorTable;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -52,6 +53,7 @@ public class PrometheusFilterRule extends RelRule<RelRule.Config> {
         Map<String, String> labels = new LinkedHashMap<>();
         Long start = scan.getStartMillis();
         Long end = scan.getEndMillis();
+        String rateWindow = scan.getRateWindow();
         List<RexNode> remaining = new ArrayList<>();
         List<String> names = scan.getRowType().getFieldNames();
 
@@ -60,6 +62,9 @@ public class PrometheusFilterRule extends RelRule<RelRule.Config> {
             if (bound != null) {
                 start = bound.start != null ? bound.start : start;
                 end = bound.end != null ? bound.end : end;
+                if (bound.rateWindow != null && (rateWindow == null || bound.start != null)) {
+                    rateWindow = bound.rateWindow;
+                }
                 continue;
             }
             if (!absorbLabel(conjunct, names, labels)) {
@@ -71,6 +76,9 @@ public class PrometheusFilterRule extends RelRule<RelRule.Config> {
         }
 
         PrometheusTableScan pushed = scan.withFilters(labels, start, end);
+        if (rateWindow != null && !rateWindow.equals(scan.getRateWindow())) {
+            pushed = pushed.withRateWindow(rateWindow);
+        }
         if (remaining.isEmpty()) {
             call.transformTo(pushed);
             return;
@@ -120,14 +128,64 @@ public class PrometheusFilterRule extends RelRule<RelRule.Config> {
         if (value == null) {
             return null;
         }
+        String rateWindow = rateWindowOf(other);
         return switch (kind) {
-            case EQUALS -> new TimeBound(value, value);
-            case GREATER_THAN -> new TimeBound(value + 1, null);
-            case GREATER_THAN_OR_EQUAL -> new TimeBound(value, null);
-            case LESS_THAN -> new TimeBound(null, value - 1);
-            case LESS_THAN_OR_EQUAL -> new TimeBound(null, value);
+            case EQUALS -> new TimeBound(value, value, rateWindow);
+            case GREATER_THAN -> new TimeBound(value + 1, null, rateWindow);
+            case GREATER_THAN_OR_EQUAL -> new TimeBound(value, null, rateWindow);
+            case LESS_THAN -> new TimeBound(null, value - 1, rateWindow);
+            case LESS_THAN_OR_EQUAL -> new TimeBound(null, value, rateWindow);
             default -> null;
         };
+    }
+
+    private static String rateWindowOf(RexNode node) {
+        String window = promqlInterval(node);
+        return PrometheusSqlOperatorTable.validWindow(window) ? window : null;
+    }
+
+    private static String promqlInterval(RexNode node) {
+        if (node instanceof RexLiteral literal) {
+            if (literal.getTypeName().getFamily() == SqlTypeFamily.INTERVAL_DAY_TIME) {
+                return promqlDuration(longValue(literal));
+            }
+            return null;
+        }
+        if (!(node instanceof RexCall call)) {
+            return null;
+        }
+        if (call.getKind() == SqlKind.CAST && !call.getOperands().isEmpty()) {
+            return promqlInterval(call.getOperands().get(0));
+        }
+        if ((call.getKind() == SqlKind.MINUS || call.getKind() == SqlKind.PLUS || call.getKind() == SqlKind.TIMES)
+                && call.getOperands().size() == 2) {
+            String left = promqlInterval(call.getOperands().get(0));
+            return left != null ? left : promqlInterval(call.getOperands().get(1));
+        }
+        return null;
+    }
+
+    private static String promqlDuration(long millis) {
+        long duration = Math.abs(millis);
+        if (duration == 0) {
+            return null;
+        }
+        if (duration % 604_800_000L == 0) {
+            return (duration / 604_800_000L) + "w";
+        }
+        if (duration % 86_400_000L == 0) {
+            return (duration / 86_400_000L) + "d";
+        }
+        if (duration % 3_600_000L == 0) {
+            return (duration / 3_600_000L) + "h";
+        }
+        if (duration % 60_000L == 0) {
+            return (duration / 60_000L) + "m";
+        }
+        if (duration % 1_000L == 0) {
+            return (duration / 1_000L) + "s";
+        }
+        return duration + "ms";
     }
 
     private static Long epochMillis(RexNode node) {
@@ -244,10 +302,12 @@ public class PrometheusFilterRule extends RelRule<RelRule.Config> {
     private static final class TimeBound {
         private final Long start;
         private final Long end;
+        private final String rateWindow;
 
-        private TimeBound(Long start, Long end) {
+        private TimeBound(Long start, Long end, String rateWindow) {
             this.start = start;
             this.end = end;
+            this.rateWindow = rateWindow;
         }
     }
 }

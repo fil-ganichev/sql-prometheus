@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
@@ -35,11 +36,16 @@ public class PrometheusRowIterator implements Iterator<Object[]> {
                                              int connectTimeoutSeconds,
                                              int queryTimeoutSeconds,
                                              String promFunction,
-                                             String promWindow) {
+                                             String promWindow,
+                                             String rateWindow,
+                                             String quantilePhi,
+                                             String quantileBy,
+                                             String scalars) {
         String json = PrometheusClient.queryRange(
                 baseUrl, metric, labelFilters, startMillis, endMillis, step, connectTimeoutSeconds, queryTimeoutSeconds,
-                promFunction, promWindow);
-        return fromJson(json, labelColumns, labelFilters, startMillis, endMillis, maxRows);
+                promFunction, promWindow, rateWindow, quantilePhi, quantileBy, scalars);
+        boolean latestSample = quantilePhi != null && !quantilePhi.isEmpty();
+        return fromJson(json, labelColumns, labelFilters, startMillis, endMillis, maxRows, latestSample);
     }
 
     public static PrometheusRowIterator fromJson(String json,
@@ -54,7 +60,7 @@ public class PrometheusRowIterator implements Iterator<Object[]> {
                                                  long startMillis,
                                                  long endMillis,
                                                  int maxRows) {
-        return fromJson(json, labelColumns, Map.of(), startMillis, endMillis, maxRows);
+        return fromJson(json, labelColumns, Map.of(), startMillis, endMillis, maxRows, false);
     }
 
     private static PrometheusRowIterator fromJson(String json,
@@ -62,8 +68,25 @@ public class PrometheusRowIterator implements Iterator<Object[]> {
                                                   Map<String, String> labelFilters,
                                                   long startMillis,
                                                   long endMillis,
-                                                  int maxRows) {
-        return new PrometheusRowIterator(parse(json, labelColumns, labelFilters, startMillis, endMillis), maxRows);
+                                                  int maxRows,
+                                                  boolean latestSample) {
+        List<Object[]> rows = parse(json, labelColumns, labelFilters, startMillis, endMillis);
+        return new PrometheusRowIterator(latestSample ? latest(rows, labelColumns.size()) : rows, maxRows);
+    }
+
+    private static List<Object[]> latest(List<Object[]> rows, int labelCount) {
+        Map<String, Object[]> newest = new LinkedHashMap<>();
+        for (Object[] row : rows) {
+            StringBuilder key = new StringBuilder();
+            for (int i = 0; i < labelCount; i++) {
+                key.append('\0').append(row[2 + i]);
+            }
+            Object[] previous = newest.get(key.toString());
+            if (previous == null || ((Number) row[0]).longValue() >= ((Number) previous[0]).longValue()) {
+                newest.put(key.toString(), row);
+            }
+        }
+        return new ArrayList<>(newest.values());
     }
 
     @Override
@@ -108,7 +131,7 @@ public class PrometheusRowIterator implements Iterator<Object[]> {
                     row[0] = timestamp;
                     row[1] = Double.parseDouble(sample.get(1).asText());
                     for (int i = 0; i < labelColumns.size(); i++) {
-                        row[2 + i] = labels.path(labelColumns.get(i)).asText();
+                        row[2 + i] = labelValue(labels, labelColumns.get(i));
                     }
                     parsed.add(row);
                 }
@@ -119,6 +142,17 @@ public class PrometheusRowIterator implements Iterator<Object[]> {
         } catch (Exception e) {
             throw new IllegalStateException("Failed to read Prometheus response", e);
         }
+    }
+
+    private static Object labelValue(JsonNode labels, String name) {
+        String text = labels.path(name).asText();
+        if (!"le".equals(name)) {
+            return text;
+        }
+        if (text == null || text.isEmpty()) {
+            return null;
+        }
+        return Double.parseDouble(text);
     }
 
     private static boolean matches(JsonNode labels, Map<String, String> labelFilters) {

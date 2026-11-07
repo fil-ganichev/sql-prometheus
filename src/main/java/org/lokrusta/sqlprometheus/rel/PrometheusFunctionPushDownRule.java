@@ -4,6 +4,8 @@ import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelRule;
 import org.apache.calcite.plan.hep.HepRelVertex;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.core.AggregateCall;
+import org.apache.calcite.rel.logical.LogicalAggregate;
 import org.apache.calcite.rel.logical.LogicalFilter;
 import org.apache.calcite.rel.logical.LogicalJoin;
 import org.apache.calcite.rel.logical.LogicalProject;
@@ -17,9 +19,12 @@ import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.lokrusta.sqlprometheus.sql.PrometheusSqlOperatorTable;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.IdentityHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 
 public class PrometheusFunctionPushDownRule extends RelRule<RelRule.Config> {
     private static final class Config extends FixedOperandConfig {
@@ -55,7 +60,7 @@ public class PrometheusFunctionPushDownRule extends RelRule<RelRule.Config> {
         }
         Map<PrometheusTableScan, PrometheusTableScan> replacements = new IdentityHashMap<>();
         rewriter.assignments.forEach((scan, assignment) ->
-                replacements.put(scan, scan.withFunction(assignment.function, assignment.window)));
+                replacements.put(scan, scan.withCall(assignment.function, assignment.window, assignment.scalars)));
         call.transformTo(project.copy(
                 project.getTraitSet(),
                 replaceScans(project.getInput(), replacements),
@@ -91,6 +96,22 @@ public class PrometheusFunctionPushDownRule extends RelRule<RelRule.Config> {
                 return resolve(left, index);
             }
             return resolve(join.getRight(), index - leftCount);
+        }
+        if (node instanceof LogicalAggregate aggregate) {
+            int groupCount = aggregate.getGroupCount();
+            if (index < groupCount || index - groupCount >= aggregate.getAggCallList().size()) {
+                return null;
+            }
+            AggregateCall aggCall = aggregate.getAggCallList().get(index - groupCount);
+            SqlKind kind = aggCall.getAggregation().getKind();
+            if ((kind != SqlKind.MAX && kind != SqlKind.MIN) || aggCall.getArgList().size() != 1) {
+                return null;
+            }
+            Target inner = resolve(aggregate.getInput(), aggCall.getArgList().get(0));
+            if (inner != null && inner.column == 1 && inner.scan.getQuantilePhi() != null) {
+                return inner;
+            }
+            return null;
         }
         return null;
     }
@@ -129,6 +150,18 @@ public class PrometheusFunctionPushDownRule extends RelRule<RelRule.Config> {
                     join.getJoinType(),
                     join.isSemiJoinDone());
         }
+        if (node instanceof LogicalAggregate aggregate) {
+            RelNode input = replaceScans(aggregate.getInput(), replacements);
+            if (input == unwrap(aggregate.getInput())) {
+                return node;
+            }
+            return aggregate.copy(
+                    aggregate.getTraitSet(),
+                    input,
+                    aggregate.getGroupSet(),
+                    aggregate.getGroupSets(),
+                    aggregate.getAggCallList());
+        }
         return node;
     }
 
@@ -145,10 +178,18 @@ public class PrometheusFunctionPushDownRule extends RelRule<RelRule.Config> {
     private static final class Assignment {
         private final String function;
         private final String window;
+        private final List<String> scalars;
 
-        private Assignment(String function, String window) {
+        private Assignment(String function, String window, List<String> scalars) {
             this.function = function;
             this.window = window;
+            this.scalars = scalars;
+        }
+
+        private boolean matches(Assignment other) {
+            return Objects.equals(function, other.function)
+                    && Objects.equals(window, other.window)
+                    && scalars.equals(other.scalars);
         }
     }
 
@@ -164,25 +205,94 @@ public class PrometheusFunctionPushDownRule extends RelRule<RelRule.Config> {
 
         @Override
         public RexNode visitCall(RexCall call) {
-            String promql = PrometheusSqlOperatorTable.promqlName(call.getOperator().getName());
-            if (promql == null) {
+            Parsed parsed = parse(call);
+            if (parsed == null) {
                 return super.visitCall(call);
             }
-            RexInputRef value = call.getOperands().isEmpty() ? null : valueRef(call.getOperands().get(0));
-            String literal = call.getOperands().size() == 2 ? windowOf(call.getOperands().get(1)) : null;
-            Target target = value == null ? null : resolve(input, value.getIndex());
-            if (literal == null || target == null || target.column != 1 || target.scan.getPromFunction() != null) {
-                conflict = true;
+            Target target = resolve(input, parsed.value.getIndex());
+            boolean pushedFunction = parsed.function != null;
+            if (target == null
+                    || target.column != 1
+                    || (pushedFunction && parsed.window == null)
+                    || (pushedFunction && target.scan.getPromFunction() != null)
+                    || (pushedFunction && target.scan.getQuantilePhi() != null)) {
+                if (pushedFunction) {
+                    conflict = true;
+                }
                 return super.visitCall(call);
             }
+            Assignment assignment = new Assignment(parsed.function, parsed.window, parsed.scalars);
             Assignment existing = assignments.get(target.scan);
             if (existing == null) {
-                assignments.put(target.scan, new Assignment(promql, literal));
-            } else if (!existing.function.equals(promql) || !existing.window.equals(literal)) {
+                assignments.put(target.scan, assignment);
+            } else if (!existing.matches(assignment)) {
                 conflict = true;
             }
             saw = true;
-            return value;
+            return parsed.value;
+        }
+    }
+
+    private static Parsed parse(RexCall call) {
+        List<String> scalars = new ArrayList<>();
+        RexNode cursor = call;
+        while (cursor instanceof RexCall current) {
+            String scalar = scalarName(current);
+            if (scalar == null) {
+                break;
+            }
+            scalars.add(scalar);
+            cursor = current.getOperands().get(0);
+            if (cursor instanceof RexCall cast && cast.getKind() == SqlKind.CAST && !cast.getOperands().isEmpty()) {
+                cursor = cast.getOperands().get(0);
+            }
+        }
+        String function = null;
+        String window = null;
+        RexInputRef value = null;
+        if (cursor instanceof RexCall current) {
+            function = PrometheusSqlOperatorTable.promqlName(current.getOperator().getName());
+            if (function != null) {
+                value = current.getOperands().isEmpty() ? null : valueRef(current.getOperands().get(0));
+                window = current.getOperands().size() == 2 ? windowOf(current.getOperands().get(1)) : null;
+            }
+        } else if (cursor instanceof RexInputRef ref) {
+            value = ref;
+        }
+        if (value == null || (function == null && scalars.isEmpty())) {
+            return null;
+        }
+        Collections.reverse(scalars);
+        return new Parsed(value, function, window, List.copyOf(scalars));
+    }
+
+    private static String scalarName(RexCall call) {
+        if (call.getOperands().size() != 1) {
+            return null;
+        }
+        return switch (call.getOperator().getName().toUpperCase(Locale.ROOT)) {
+            case "ABS" -> "abs";
+            case "CEIL", "CEILING" -> "ceil";
+            case "FLOOR" -> "floor";
+            case "ROUND" -> "round";
+            case "LN" -> "ln";
+            case "LOG10" -> "log10";
+            case "SQRT" -> "sqrt";
+            default -> null;
+        };
+    }
+
+    private static final class Parsed {
+        private final RexInputRef value;
+        private final String function;
+        private final String window;
+        private final List<String> scalars;
+
+        private Parsed(RexInputRef value, String function, String window, List<String> scalars) {
+            this.value = value;
+            this.function = function;
+            this.window = window;
+            this.scalars = scalars;
         }
     }
 

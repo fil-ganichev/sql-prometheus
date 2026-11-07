@@ -12,6 +12,7 @@ import org.apache.calcite.tools.Program;
 import org.apache.calcite.tools.Programs;
 import org.lokrusta.sqlprometheus.rel.PrometheusFilterRule;
 import org.lokrusta.sqlprometheus.rel.PrometheusFunctionPushDownRule;
+import org.lokrusta.sqlprometheus.rel.PrometheusQuantilePushDownRule;
 import org.lokrusta.sqlprometheus.rel.PrometheusPushRules;
 import org.lokrusta.sqlprometheus.rel.PrometheusToEnumerableRule;
 
@@ -33,6 +34,7 @@ public final class PrometheusPrograms {
                 .addRuleInstance(PrometheusPushRules.JOIN_TIME)
                 .addGroupEnd()
                 .addGroupBegin()
+                .addRuleInstance(PrometheusQuantilePushDownRule.INSTANCE)
                 .addRuleInstance(PrometheusFunctionPushDownRule.INSTANCE)
                 .addGroupEnd()
                 .build();

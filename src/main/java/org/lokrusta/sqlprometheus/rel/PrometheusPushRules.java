@@ -175,12 +175,15 @@ public final class PrometheusPushRules {
             }
             Long start = left.getStartMillis() != null ? left.getStartMillis() : right.getStartMillis();
             Long end = left.getEndMillis() != null ? left.getEndMillis() : right.getEndMillis();
+            String rateWindow = left.getRateWindow() != null ? left.getRateWindow() : right.getRateWindow();
             if (start == null && end == null) {
                 return;
             }
-            RelNode newLeft = applyWindow(join.getLeft(), start, end);
-            RelNode newRight = applyWindow(join.getRight(), start, end);
-            if (newLeft == join.getLeft() && newRight == join.getRight()) {
+            RelNode leftInput = unwrap(join.getLeft());
+            RelNode rightInput = unwrap(join.getRight());
+            RelNode newLeft = applyWindow(leftInput, start, end, rateWindow);
+            RelNode newRight = applyWindow(rightInput, start, end, rateWindow);
+            if (newLeft == leftInput && newRight == rightInput) {
                 return;
             }
             call.transformTo(join.copy(
@@ -210,16 +213,22 @@ public final class PrometheusPushRules {
             return null;
         }
 
-        private static RelNode applyWindow(RelNode node, Long start, Long end) {
+        private static RelNode applyWindow(RelNode node, Long start, Long end, String rateWindow) {
             node = unwrap(node);
             if (node instanceof PrometheusTableScan scan) {
-                if (sameWindow(scan, start, end)) {
+                boolean same = sameWindow(scan, start, end);
+                boolean sameRange = rateWindow == null || rateWindow.equals(scan.getRateWindow());
+                if (same && sameRange) {
                     return node;
                 }
-                return scan.withFilters(Map.of(), start, end);
+                PrometheusTableScan next = same ? scan : scan.withFilters(Map.of(), start, end);
+                if (next.getRateWindow() == null && rateWindow != null) {
+                    next = next.withRateWindow(rateWindow);
+                }
+                return next;
             }
             if (node instanceof LogicalFilter filter) {
-                RelNode input = applyWindow(filter.getInput(), start, end);
+                RelNode input = applyWindow(filter.getInput(), start, end, rateWindow);
                 if (input == filter.getInput()) {
                     return node;
                 }

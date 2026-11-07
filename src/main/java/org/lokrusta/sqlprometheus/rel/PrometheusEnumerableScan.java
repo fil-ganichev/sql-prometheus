@@ -28,8 +28,13 @@ public class PrometheusEnumerableScan extends PrometheusTableScan implements Enu
                                     Long startMillis,
                                     Long endMillis,
                                     String promFunction,
-                                    String promWindow) {
-        super(cluster, traitSet, table, prometheusTable, labelFilters, startMillis, endMillis, promFunction, promWindow);
+                                    String promWindow,
+                                    String rateWindow,
+                                    String quantilePhi,
+                                    List<String> quantileBy,
+                                    List<String> scalars) {
+        super(cluster, traitSet, table, prometheusTable, labelFilters, startMillis, endMillis,
+                promFunction, promWindow, rateWindow, quantilePhi, quantileBy, scalars);
     }
 
     public static PrometheusEnumerableScan create(PrometheusTableScan logical) {
@@ -42,7 +47,11 @@ public class PrometheusEnumerableScan extends PrometheusTableScan implements Enu
                 logical.getStartMillis(),
                 logical.getEndMillis(),
                 logical.getPromFunction(),
-                logical.getPromWindow());
+                logical.getPromWindow(),
+                logical.getRateWindow(),
+                logical.getQuantilePhi(),
+                logical.getQuantileBy(),
+                logical.getScalars());
     }
 
     @Override
@@ -56,7 +65,11 @@ public class PrometheusEnumerableScan extends PrometheusTableScan implements Enu
                 getStartMillis(),
                 getEndMillis(),
                 getPromFunction(),
-                getPromWindow());
+                getPromWindow(),
+                getRateWindow(),
+                getQuantilePhi(),
+                getQuantileBy(),
+                getScalars());
     }
 
     @Override
@@ -79,6 +92,10 @@ public class PrometheusEnumerableScan extends PrometheusTableScan implements Enu
                 int.class,
                 int.class,
                 String.class,
+                String.class,
+                String.class,
+                String.class,
+                String.class,
                 String.class);
         return implementor.result(physType, Blocks.toBlock(Expressions.call(
                 query,
@@ -93,7 +110,11 @@ public class PrometheusEnumerableScan extends PrometheusTableScan implements Enu
                 Expressions.constant(getPrometheusTable().options().connectTimeoutSeconds(), int.class),
                 Expressions.constant(getPrometheusTable().options().queryTimeoutSeconds(), int.class),
                 Expressions.constant(getPromFunction(), String.class),
-                Expressions.constant(getPromWindow(), String.class))));
+                Expressions.constant(getPromWindow(), String.class),
+                Expressions.constant(getRateWindow(), String.class),
+                Expressions.constant(getQuantilePhi(), String.class),
+                Expressions.constant(quantileBySpec(), String.class),
+                Expressions.constant(scalarSpec(), String.class))));
     }
 
     private static org.apache.calcite.linq4j.tree.Expression constantLong(Long value) {

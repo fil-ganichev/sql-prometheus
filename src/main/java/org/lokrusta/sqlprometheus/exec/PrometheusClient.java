@@ -27,8 +27,12 @@ public final class PrometheusClient {
                                     int connectTimeoutSeconds,
                                     int queryTimeoutSeconds,
                                     String promFunction,
-                                    String promWindow) {
-        String query = selector(metric, labelFilters, promFunction, promWindow);
+                                    String promWindow,
+                                    String rateWindow,
+                                    String quantilePhi,
+                                    String quantileBy,
+                                    String scalars) {
+        String query = selector(metric, labelFilters, promFunction, promWindow, rateWindow, quantilePhi, quantileBy, scalars);
         String url = stripSlash(baseUrl) + "/api/v1/query_range?query=" + encode(query)
                 + "&start=" + seconds(startMillis)
                 + "&end=" + seconds(endMillis)
@@ -57,7 +61,11 @@ public final class PrometheusClient {
     private static String selector(String metric,
                                    Map<String, String> labelFilters,
                                    String promFunction,
-                                   String promWindow) {
+                                   String promWindow,
+                                   String rateWindow,
+                                   String quantilePhi,
+                                   String quantileBy,
+                                   String scalars) {
         String series = metric;
         if (labelFilters != null && !labelFilters.isEmpty()) {
             String labels = labelFilters.entrySet().stream()
@@ -65,10 +73,26 @@ public final class PrometheusClient {
                     .collect(Collectors.joining(","));
             series = metric + "{" + labels + "}";
         }
-        if (promFunction == null || promFunction.isEmpty()) {
-            return series;
+        String core;
+        if (quantilePhi != null && !quantilePhi.isEmpty()) {
+            if (rateWindow == null || rateWindow.isEmpty()) {
+                throw new IllegalStateException("histogram_quantile requires a range window");
+            }
+            String by = quantileBy == null || quantileBy.isEmpty() ? "le" : quantileBy;
+            core = "histogram_quantile(" + quantilePhi + ", sum by (" + by + ") (rate(" + series + "[" + rateWindow + "])))";
+        } else if (promFunction != null && !promFunction.isEmpty()) {
+            core = promFunction + "(" + series + "[" + promWindow + "])";
+        } else {
+            core = series;
         }
-        return promFunction + "(" + series + "[" + promWindow + "])";
+        if (scalars != null && !scalars.isEmpty()) {
+            for (String scalar : scalars.split(",")) {
+                if (!scalar.isEmpty()) {
+                    core = scalar + "(" + core + ")";
+                }
+            }
+        }
+        return core;
     }
 
     private static String escape(String value) {

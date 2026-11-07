@@ -21,6 +21,8 @@ import org.lokrusta.sqlprometheus.sql.PrometheusSqlOperatorTable;
 import java.net.InetSocketAddress;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
+import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicReference;
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -319,6 +321,115 @@ class PrometheusDriverTest {
         assertTrue(nodeScan.contains("function=[irate]"), afterPlan);
         assertTrue(nodeScan.contains("window=[1m]"), afterPlan);
         assertEquals(2, count(afterPlan, "start=["), afterPlan);
+    }
+
+    @Test
+    void percentileAndRoundOnOneMetric() throws Exception {
+        String sql = """
+                SELECT service_name,
+                       ROUND(PERCENTILE_CONT(0.95) WITHIN GROUP (ORDER BY le)) AS p95
+                FROM http_request_duration_seconds_bucket
+                WHERE "timestamp" > NOW() - INTERVAL '5' MINUTE
+                GROUP BY service_name
+                """;
+        RelNode before = logicalPlan(sql);
+        String beforePlan = RelOptUtil.toString(before);
+        String afterPlan = pushedPlan(before);
+        System.out.println("percentile one metric before optimizations");
+        System.out.println(beforePlan);
+        System.out.println("percentile one metric after optimizations");
+        System.out.println(afterPlan);
+
+        assertTrue(beforePlan.contains("PERCENTILE_CONT"), beforePlan);
+        assertTrue(beforePlan.contains("ROUND"), beforePlan);
+        assertFalse(beforePlan.contains("quantile=["), beforePlan);
+        assertTrue(afterPlan.contains("quantile=[0.95]"), afterPlan);
+        assertTrue(afterPlan.contains("sumBy=[le, service_name]"), afterPlan);
+        assertTrue(afterPlan.contains("range=[5m]"), afterPlan);
+        assertTrue(afterPlan.contains("scalars=[round]"), afterPlan);
+        assertFalse(afterPlan.contains("PERCENTILE_CONT"), afterPlan);
+        assertFalse(afterPlan.contains("ROUND"), afterPlan);
+
+        List<String> queries = prometheusQueries(sql);
+        assertEquals(1, queries.size(), queries.toString());
+        assertTrue(queries.get(0).contains(
+                "round(histogram_quantile(0.95, sum by (le, service_name) (rate(http_request_duration_seconds_bucket[5m]))))"),
+                queries.get(0));
+    }
+
+    @Test
+    void percentileAndAbsOnFlatJoin() throws Exception {
+        String sql = """
+                SELECT c.service_name,
+                       ABS(PERCENTILE_CONT(0.95) WITHIN GROUP (ORDER BY c.le)) AS p95,
+                       AVG(n.value) AS avg_node
+                FROM http_request_duration_seconds_bucket c
+                JOIN node_cpu_seconds_total n ON c.instance = n.instance
+                WHERE c.timestamp > NOW() - INTERVAL '5' MINUTE
+                GROUP BY c.service_name
+                """;
+        RelNode before = logicalPlan(sql);
+        String beforePlan = RelOptUtil.toString(before);
+        String afterPlan = pushedPlan(before);
+        System.out.println("percentile flat join before optimizations");
+        System.out.println(beforePlan);
+        System.out.println("percentile flat join after optimizations");
+        System.out.println(afterPlan);
+
+        assertTrue(beforePlan.contains("PERCENTILE_CONT"), beforePlan);
+        assertTrue(beforePlan.contains("ABS"), beforePlan);
+        assertTrue(beforePlan.contains("LogicalJoin"), beforePlan);
+        assertFalse(beforePlan.contains("quantile=["), beforePlan);
+        assertTrue(afterPlan.contains("LogicalJoin"), afterPlan);
+        assertTrue(afterPlan.contains("AVG"), afterPlan);
+        assertFalse(afterPlan.contains("PERCENTILE_CONT"), afterPlan);
+        assertFalse(afterPlan.contains("ABS("), afterPlan);
+        int bucket = afterPlan.indexOf("http_request_duration_seconds_bucket");
+        int node = afterPlan.indexOf("node_cpu_seconds_total");
+        assertTrue(bucket >= 0 && node > bucket, afterPlan);
+        String bucketScan = afterPlan.substring(bucket, node);
+        assertTrue(bucketScan.contains("quantile=[0.95]"), afterPlan);
+        assertTrue(bucketScan.contains("scalars=[abs]"), afterPlan);
+        assertTrue(bucketScan.contains("sumBy=[le, service_name, instance]"), afterPlan);
+        assertTrue(bucketScan.contains("range=[5m]"), afterPlan);
+        assertFalse(afterPlan.substring(node).contains("quantile="), afterPlan);
+
+        List<String> queries = prometheusQueries(sql);
+        assertTrue(queries.stream().anyMatch(query -> query.contains(
+                "abs(histogram_quantile(0.95, sum by (le, service_name, instance) (rate(http_request_duration_seconds_bucket[5m]))))")),
+                queries.toString());
+        assertTrue(queries.stream().anyMatch(query -> query.contains("node_cpu_seconds_total") && !query.contains("histogram_quantile")),
+                queries.toString());
+    }
+
+    private static List<String> prometheusQueries(String sql) throws Exception {
+        Class.forName("org.lokrusta.sqlprometheus.driver.PrometheusDriver");
+        long now = System.currentTimeMillis() / 1000;
+        String body = "{\"status\":\"success\",\"data\":{\"resultType\":\"matrix\",\"result\":["
+                + "{\"metric\":{\"service_name\":\"api\",\"instance\":\"localhost\",\"mode\":\"idle\"},\"values\":[["
+                + (now - 60) + ",\"0.10\"],[" + now + ",\"0.42\"]]}]}}";
+        List<String> queries = new CopyOnWriteArrayList<>();
+        HttpServer server = HttpServer.create(new InetSocketAddress("localhost", 0), 0);
+        server.createContext("/api/v1/query_range", exchange -> {
+            queries.add(URLDecoder.decode(exchange.getRequestURI().getRawQuery(), StandardCharsets.UTF_8));
+            byte[] bytes = body.getBytes(StandardCharsets.UTF_8);
+            exchange.sendResponseHeaders(200, bytes.length);
+            exchange.getResponseBody().write(bytes);
+            exchange.close();
+        });
+        server.start();
+        try {
+            String url = "jdbc:prometheus://localhost:" + server.getAddress().getPort();
+            try (Connection connection = DriverManager.getConnection(url);
+                 Statement statement = connection.createStatement();
+                 ResultSet rows = statement.executeQuery(sql)) {
+                assertTrue(rows.next(), queries.toString());
+                assertFalse(rows.next(), queries.toString());
+            }
+            return queries;
+        } finally {
+            server.stop(0);
+        }
     }
 
     @Test

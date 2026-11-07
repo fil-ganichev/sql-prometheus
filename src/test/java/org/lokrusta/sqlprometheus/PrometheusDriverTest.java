@@ -433,7 +433,82 @@ class PrometheusDriverTest {
                 queries.toString());
     }
 
+    @Test
+    void percentileCommaJoinWhereEqualityReachesSumBy() throws Exception {
+        String sql = """
+                SELECT c.service_name,
+                       PERCENTILE_CONT(0.95) WITHIN GROUP (ORDER BY c.le) AS p95
+                FROM http_request_duration_seconds_bucket c, node_cpu_seconds_total n
+                WHERE c.instance = n.instance
+                  AND c.timestamp > NOW() - INTERVAL '5' MINUTE
+                GROUP BY c.service_name
+                """;
+        String afterPlan = pushedPlan(logicalPlan(sql));
+        assertTrue(afterPlan.contains("joinType=[inner]"), afterPlan);
+        assertTrue(afterPlan.contains("quantile=[0.95]"), afterPlan);
+        assertTrue(afterPlan.contains("sumBy=[le, service_name, instance]"), afterPlan);
+        assertTrue(afterPlan.contains("range=[5m]"), afterPlan);
+        assertFalse(afterPlan.contains("PERCENTILE_CONT"), afterPlan);
+
+        List<String> queries = prometheusQueries(sql, false);
+        assertTrue(queries.stream().anyMatch(query -> query.contains(
+                "histogram_quantile(0.95, sum by (le, service_name, instance) (rate(http_request_duration_seconds_bucket[5m])))")),
+                queries.toString());
+    }
+
+    @Test
+    void percentileComparisonWithoutReturnedLabelFails() throws Exception {
+        IllegalStateException where = assertThrows(IllegalStateException.class, () -> pushedPlan(logicalPlan("""
+                SELECT c.service_name,
+                       PERCENTILE_CONT(0.95) WITHIN GROUP (ORDER BY c.le) AS p95
+                FROM http_request_duration_seconds_bucket c, node_cpu_seconds_total n
+                WHERE c.instance > n.instance
+                  AND c.timestamp > NOW() - INTERVAL '5' MINUTE
+                GROUP BY c.service_name
+                """)));
+        assertTrue(where.getMessage().contains("instance"), where.getMessage());
+        assertTrue(where.getMessage().contains(">"), where.getMessage());
+
+        IllegalStateException onJoin = assertThrows(IllegalStateException.class, () -> pushedPlan(logicalPlan("""
+                SELECT c.service_name,
+                       PERCENTILE_CONT(0.95) WITHIN GROUP (ORDER BY c.le) AS p95
+                FROM http_request_duration_seconds_bucket c
+                JOIN node_cpu_seconds_total n ON c.instance >= n.instance
+                WHERE c.timestamp > NOW() - INTERVAL '5' MINUTE
+                GROUP BY c.service_name
+                """)));
+        assertTrue(onJoin.getMessage().contains("instance"), onJoin.getMessage());
+        assertTrue(onJoin.getMessage().contains(">="), onJoin.getMessage());
+
+        IllegalStateException bucket = assertThrows(IllegalStateException.class, () -> pushedPlan(logicalPlan("""
+                SELECT service_name,
+                       PERCENTILE_CONT(0.95) WITHIN GROUP (ORDER BY le) AS p95
+                FROM http_request_duration_seconds_bucket
+                WHERE le > 1
+                  AND "timestamp" > NOW() - INTERVAL '5' MINUTE
+                GROUP BY service_name
+                """)));
+        assertTrue(bucket.getMessage().contains("le"), bucket.getMessage());
+        assertTrue(bucket.getMessage().contains(">"), bucket.getMessage());
+
+        String grouped = pushedPlan(logicalPlan("""
+                SELECT c.service_name,
+                       c.instance,
+                       PERCENTILE_CONT(0.95) WITHIN GROUP (ORDER BY c.le) AS p95
+                FROM http_request_duration_seconds_bucket c, node_cpu_seconds_total n
+                WHERE c.instance > n.instance
+                  AND c.timestamp > NOW() - INTERVAL '5' MINUTE
+                GROUP BY c.service_name, c.instance
+                """));
+        assertTrue(grouped.contains("sumBy=[le, service_name, instance]"), grouped);
+        assertTrue(grouped.contains("quantile=[0.95]"), grouped);
+    }
+
     private static List<String> prometheusQueries(String sql) throws Exception {
+        return prometheusQueries(sql, true);
+    }
+
+    private static List<String> prometheusQueries(String sql, boolean singleRow) throws Exception {
         Class.forName("org.lokrusta.sqlprometheus.driver.PrometheusDriver");
         long now = System.currentTimeMillis() / 1000;
         String body = "{\"status\":\"success\",\"data\":{\"resultType\":\"matrix\",\"result\":["
@@ -456,7 +531,9 @@ class PrometheusDriverTest {
                  Statement statement = connection.createStatement();
                  ResultSet rows = statement.executeQuery(sql)) {
                 assertTrue(rows.next(), queries.toString());
-                assertFalse(rows.next(), queries.toString());
+                if (singleRow) {
+                    assertFalse(rows.next(), queries.toString());
+                }
             }
             return queries;
         } finally {

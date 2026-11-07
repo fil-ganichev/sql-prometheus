@@ -6,9 +6,11 @@ import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.RelRule;
 import org.apache.calcite.plan.hep.HepRelVertex;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.logical.LogicalFilter;
 import org.apache.calcite.rel.logical.LogicalJoin;
 import org.apache.calcite.rel.logical.LogicalProject;
+import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexNode;
@@ -57,6 +59,7 @@ public final class PrometheusPushRules {
             RexBuilder rexBuilder = join.getCluster().getRexBuilder();
             List<RexNode> left = new ArrayList<>();
             List<RexNode> right = new ArrayList<>();
+            List<RexNode> equijoin = new ArrayList<>();
             List<RexNode> above = new ArrayList<>();
             for (RexNode conjunct : RelOptUtil.conjunctions(filter.getCondition())) {
                 ImmutableBitSet bits = RelOptUtil.InputFinder.bits(conjunct);
@@ -74,11 +77,13 @@ public final class PrometheusPushRules {
                     left.add(conjunct);
                 } else if (onRight) {
                     right.add(shift(conjunct, -leftCount));
+                } else if (conjunct.isA(SqlKind.EQUALS)) {
+                    equijoin.add(conjunct);
                 } else {
                     above.add(conjunct);
                 }
             }
-            if (left.isEmpty() && right.isEmpty()) {
+            if (left.isEmpty() && right.isEmpty() && equijoin.isEmpty()) {
                 return;
             }
             RelNode newLeft = left.isEmpty()
@@ -87,12 +92,21 @@ public final class PrometheusPushRules {
             RelNode newRight = right.isEmpty()
                     ? join.getRight()
                     : LogicalFilter.create(join.getRight(), RexUtil.composeConjunction(rexBuilder, right));
+            RexNode condition = join.getCondition();
+            JoinRelType joinType = join.getJoinType();
+            if (!equijoin.isEmpty()) {
+                List<RexNode> parts = new ArrayList<>();
+                parts.add(condition);
+                parts.addAll(equijoin);
+                condition = RexUtil.composeConjunction(rexBuilder, parts);
+                joinType = JoinRelType.INNER;
+            }
             RelNode newJoin = join.copy(
                     join.getTraitSet(),
-                    join.getCondition(),
+                    condition,
                     newLeft,
                     newRight,
-                    join.getJoinType(),
+                    joinType,
                     join.isSemiJoinDone());
             if (above.isEmpty()) {
                 call.transformTo(newJoin);

@@ -76,6 +76,7 @@ public class PrometheusQuantilePushDownRule extends RelRule<RelRule.Config> {
         if (quantile == null) {
             return;
         }
+        rejectUnavailable(aggregate.getInput(), quantile.scan, quantile.sumBy);
         ValueCarrier carried = ensureValue(aggregate.getInput(), quantile.scan);
         if (carried == null) {
             return;
@@ -233,12 +234,107 @@ public class PrometheusQuantilePushDownRule extends RelRule<RelRule.Config> {
             return;
         }
         if (node instanceof LogicalJoin join) {
-            for (int bit : RelOptUtil.InputFinder.bits(join.getCondition())) {
-                addLabel(names, fields, resolve(join, bit), scan);
+            for (RexNode conjunct : RelOptUtil.conjunctions(join.getCondition())) {
+                if (!conjunct.isA(SqlKind.EQUALS)) {
+                    continue;
+                }
+                for (int bit : RelOptUtil.InputFinder.bits(conjunct)) {
+                    addLabel(names, fields, resolve(join, bit), scan);
+                }
             }
             collectJoinLabels(join.getLeft(), scan, names, fields);
             collectJoinLabels(join.getRight(), scan, names, fields);
         }
+    }
+
+    private static void rejectUnavailable(RelNode node, PrometheusTableScan scan, List<String> sumBy) {
+        node = unwrap(node);
+        if (node instanceof LogicalFilter filter) {
+            for (RexNode conjunct : RelOptUtil.conjunctions(filter.getCondition())) {
+                rejectConjunct(conjunct, filter.getInput(), scan, sumBy);
+            }
+            rejectUnavailable(filter.getInput(), scan, sumBy);
+            return;
+        }
+        if (node instanceof LogicalProject project) {
+            rejectUnavailable(project.getInput(), scan, sumBy);
+            return;
+        }
+        if (node instanceof LogicalJoin join) {
+            for (RexNode conjunct : RelOptUtil.conjunctions(join.getCondition())) {
+                rejectConjunct(conjunct, join, scan, sumBy);
+            }
+            rejectUnavailable(join.getLeft(), scan, sumBy);
+            rejectUnavailable(join.getRight(), scan, sumBy);
+        }
+    }
+
+    private static void rejectConjunct(RexNode conjunct, RelNode input, PrometheusTableScan scan, List<String> sumBy) {
+        for (int bit : RelOptUtil.InputFinder.bits(conjunct)) {
+            Target target = resolve(input, bit);
+            if (target == null || target.scan != scan || survives(target, scan, sumBy)) {
+                continue;
+            }
+            String column = scan.getRowType().getFieldNames().get(target.column);
+            throw new IllegalStateException(
+                    "PERCENTILE_CONT cannot apply " + operatorOf(conjunct, bit) + " to " + column
+                            + " because histogram_quantile does not return that column");
+        }
+    }
+
+    private static boolean survives(Target target, PrometheusTableScan scan, List<String> sumBy) {
+        if (target.column <= 1) {
+            return true;
+        }
+        String name = scan.getRowType().getFieldNames().get(target.column);
+        if ("le".equalsIgnoreCase(name)) {
+            return false;
+        }
+        for (String label : sumBy) {
+            if (label.equalsIgnoreCase(name)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static String operatorOf(RexNode node, int bit) {
+        if (!(node instanceof RexCall call)) {
+            return "comparison";
+        }
+        if (comparison(call.getKind())) {
+            return symbol(call.getKind());
+        }
+        for (RexNode operand : call.getOperands()) {
+            if (RelOptUtil.InputFinder.bits(operand).get(bit)) {
+                String found = operatorOf(operand, bit);
+                if (!"comparison".equals(found)) {
+                    return found;
+                }
+            }
+        }
+        return "comparison";
+    }
+
+    private static boolean comparison(SqlKind kind) {
+        return kind == SqlKind.EQUALS
+                || kind == SqlKind.NOT_EQUALS
+                || kind == SqlKind.GREATER_THAN
+                || kind == SqlKind.GREATER_THAN_OR_EQUAL
+                || kind == SqlKind.LESS_THAN
+                || kind == SqlKind.LESS_THAN_OR_EQUAL;
+    }
+
+    private static String symbol(SqlKind kind) {
+        return switch (kind) {
+            case EQUALS -> "=";
+            case NOT_EQUALS -> "<>";
+            case GREATER_THAN -> ">";
+            case GREATER_THAN_OR_EQUAL -> ">=";
+            case LESS_THAN -> "<";
+            case LESS_THAN_OR_EQUAL -> "<=";
+            default -> kind.name();
+        };
     }
 
     private static void addLabel(List<String> names, List<String> fields, Target target, PrometheusTableScan scan) {

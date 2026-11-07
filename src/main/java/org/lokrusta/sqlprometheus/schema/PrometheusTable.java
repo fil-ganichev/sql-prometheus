@@ -40,6 +40,10 @@ public class PrometheusTable extends AbstractTable implements ScannableTable, Tr
         this.options = options;
     }
 
+    public static PrometheusTable metric(String baseUrl, String name, List<String> labelColumns, PrometheusOptions options) {
+        return new PrometheusTable(baseUrl, name, labelColumns, options);
+    }
+
     public static PrometheusTable cpu(String baseUrl, PrometheusOptions options) {
         return new PrometheusTable(baseUrl, "node_cpu_seconds_total", List.of("instance", "mode"), options);
     }

@@ -1,6 +1,8 @@
 package org.lokrusta.sqlprometheus.driver;
 
+import org.apache.calcite.jdbc.CalciteConnection;
 import org.apache.calcite.runtime.Hook;
+import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.sql2rel.SqlToRelConverter;
 import org.apache.calcite.tools.Program;
 import org.apache.calcite.util.Holder;
@@ -47,7 +49,14 @@ public class PrometheusDriver extends org.apache.calcite.jdbc.Driver {
         if (!acceptsURL(url)) {
             return null;
         }
-        return super.connect(toCalciteUrl(url), info);
+        Connection connection = super.connect(toCalciteUrl(url), info);
+        SchemaPlus prometheus = connection.unwrap(CalciteConnection.class).getRootSchema().getSubSchema("prometheus");
+        if (prometheus == null) {
+            throw new SQLException("Prometheus schema was not created");
+        }
+        // Calcite otherwise snapshots table names once. A later metric would never be looked up.
+        prometheus.setCacheEnabled(false);
+        return connection;
     }
 
     private static String toCalciteUrl(String url) throws SQLException {
@@ -83,6 +92,8 @@ public class PrometheusDriver extends org.apache.calcite.jdbc.Driver {
         String step = null;
         Integer connectTimeout = null;
         Integer queryTimeout = null;
+        Integer schemaCacheMaxBytes = null;
+        Integer schemaCacheTtlSeconds = null;
         Set<String> seen = new HashSet<>();
         if (!queryString.isEmpty()) {
             for (String part : queryString.split("&")) {
@@ -104,6 +115,8 @@ public class PrometheusDriver extends org.apache.calcite.jdbc.Driver {
                         case "step" -> step = PrometheusOptions.step(value);
                         case "connectTimeout" -> connectTimeout = PrometheusOptions.positiveInt(name, value);
                         case "queryTimeout" -> queryTimeout = PrometheusOptions.positiveInt(name, value);
+                        case "schemaCacheMaxBytes" -> schemaCacheMaxBytes = PrometheusOptions.positiveInt(name, value);
+                        case "schemaCacheTtlSeconds" -> schemaCacheTtlSeconds = PrometheusOptions.positiveInt(name, value);
                         default -> throw new SQLException("Unknown parameter " + name);
                     }
                 } catch (IllegalArgumentException e) {
@@ -116,7 +129,9 @@ public class PrometheusDriver extends org.apache.calcite.jdbc.Driver {
                 maxRows == null ? defaults.maxRows() : maxRows,
                 step == null ? defaults.step() : step,
                 connectTimeout == null ? defaults.connectTimeoutSeconds() : connectTimeout,
-                queryTimeout == null ? defaults.queryTimeoutSeconds() : queryTimeout);
+                queryTimeout == null ? defaults.queryTimeoutSeconds() : queryTimeout,
+                schemaCacheMaxBytes == null ? defaults.schemaCacheMaxBytes() : schemaCacheMaxBytes,
+                schemaCacheTtlSeconds == null ? defaults.schemaCacheTtlSeconds() : schemaCacheTtlSeconds);
     }
 
     private static String model(String baseUrl, PrometheusOptions options) {
@@ -128,6 +143,8 @@ public class PrometheusDriver extends org.apache.calcite.jdbc.Driver {
                 + ",\"step\":\"" + options.step() + "\""
                 + ",\"connectTimeout\":" + options.connectTimeoutSeconds()
                 + ",\"queryTimeout\":" + options.queryTimeoutSeconds()
+                + ",\"schemaCacheMaxBytes\":" + options.schemaCacheMaxBytes()
+                + ",\"schemaCacheTtlSeconds\":" + options.schemaCacheTtlSeconds()
                 + "}}]}";
     }
 

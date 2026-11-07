@@ -23,7 +23,9 @@ public class PrometheusSchemaFactory implements SchemaFactory {
                 positive("maxRows", operand.get("maxRows"), defaults.maxRows()),
                 operand.get("step") == null ? defaults.step() : PrometheusOptions.step(operand.get("step").toString()),
                 positive("connectTimeout", operand.get("connectTimeout"), defaults.connectTimeoutSeconds()),
-                positive("queryTimeout", operand.get("queryTimeout"), defaults.queryTimeoutSeconds()));
+                positive("queryTimeout", operand.get("queryTimeout"), defaults.queryTimeoutSeconds()),
+                positive("schemaCacheMaxBytes", operand.get("schemaCacheMaxBytes"), defaults.schemaCacheMaxBytes()),
+                positive("schemaCacheTtlSeconds", operand.get("schemaCacheTtlSeconds"), defaults.schemaCacheTtlSeconds()));
     }
 
     private static int positive(String name, Object raw, int fallback) {

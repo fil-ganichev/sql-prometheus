@@ -127,6 +127,7 @@ class PrometheusDriverTest {
             exchange.getResponseBody().write(bytes);
             exchange.close();
         });
+        serveBuiltinSeries(server);
         server.start();
         try {
             int port = server.getAddress().getPort();
@@ -187,6 +188,7 @@ class PrometheusDriverTest {
             exchange.getResponseBody().write(bytes);
             exchange.close();
         });
+        serveBuiltinSeries(server);
         server.start();
         try {
             int livePort = server.getAddress().getPort();
@@ -209,6 +211,35 @@ class PrometheusDriverTest {
         } finally {
             server.stop(0);
         }
+    }
+
+    private static void serveBuiltinSeries(HttpServer server) {
+        server.createContext("/api/v1/series", exchange -> {
+            String raw = exchange.getRequestURI().getRawQuery();
+            String decoded = raw == null ? "" : URLDecoder.decode(raw, StandardCharsets.UTF_8);
+            int separator = decoded.indexOf('=');
+            String metric = separator >= 0 ? decoded.substring(separator + 1) : decoded;
+            String json = builtinSeriesJson(metric);
+            byte[] bytes = json.getBytes(StandardCharsets.UTF_8);
+            exchange.sendResponseHeaders(200, bytes.length);
+            exchange.getResponseBody().write(bytes);
+            exchange.close();
+        });
+    }
+
+    private static String builtinSeriesJson(String metric) {
+        String labels = switch (metric) {
+            case "node_cpu_seconds_total" -> "\"instance\":\"localhost\",\"mode\":\"idle\"";
+            case "container_cpu_usage_seconds_total" -> "\"instance\":\"localhost\",\"image\":\"app\"";
+            case "kube_pod_info" -> "\"node\":\"n\",\"pod\":\"p\"";
+            case "http_request_duration_seconds_bucket" ->
+                    "\"instance\":\"localhost\",\"le\":\"0.1\",\"service_name\":\"api\"";
+            default -> null;
+        };
+        if (labels == null) {
+            return "{\"status\":\"success\",\"data\":[]}";
+        }
+        return "{\"status\":\"success\",\"data\":[{\"__name__\":\"" + metric + "\"," + labels + "}]}";
     }
 
     private static String timeoutMessage(Throwable thrown) {
@@ -417,6 +448,7 @@ class PrometheusDriverTest {
             exchange.getResponseBody().write(bytes);
             exchange.close();
         });
+        serveBuiltinSeries(server);
         server.start();
         try {
             String url = "jdbc:prometheus://localhost:" + server.getAddress().getPort();
@@ -447,6 +479,7 @@ class PrometheusDriverTest {
             exchange.getResponseBody().write(bytes);
             exchange.close();
         });
+        serveBuiltinSeries(server);
         server.start();
         try {
             String url = "jdbc:prometheus://localhost:" + server.getAddress().getPort();

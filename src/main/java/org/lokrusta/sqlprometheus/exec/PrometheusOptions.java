@@ -1,16 +1,25 @@
 package org.lokrusta.sqlprometheus.exec;
 
-public record PrometheusOptions(int maxRows, String step, int connectTimeoutSeconds, int queryTimeoutSeconds) {
+public record PrometheusOptions(int maxRows,
+                                String step,
+                                int connectTimeoutSeconds,
+                                int queryTimeoutSeconds,
+                                int schemaCacheMaxBytes,
+                                int schemaCacheTtlSeconds) {
     public static final String DEFAULT_STEP = "15s";
     public static final int DEFAULT_CONNECT_TIMEOUT_SECONDS = 10;
     public static final int DEFAULT_QUERY_TIMEOUT_SECONDS = 30;
+    public static final int DEFAULT_SCHEMA_CACHE_MAX_BYTES = 4 * 1024 * 1024;
+    public static final int DEFAULT_SCHEMA_CACHE_TTL_SECONDS = 600;
 
     public static PrometheusOptions defaults() {
         return new PrometheusOptions(
                 PrometheusRowIterator.DEFAULT_MAX_ROWS,
                 DEFAULT_STEP,
                 DEFAULT_CONNECT_TIMEOUT_SECONDS,
-                DEFAULT_QUERY_TIMEOUT_SECONDS);
+                DEFAULT_QUERY_TIMEOUT_SECONDS,
+                DEFAULT_SCHEMA_CACHE_MAX_BYTES,
+                DEFAULT_SCHEMA_CACHE_TTL_SECONDS);
     }
 
     public static int positiveInt(String name, String raw) {

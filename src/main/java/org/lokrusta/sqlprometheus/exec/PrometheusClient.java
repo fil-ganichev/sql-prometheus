@@ -1,5 +1,8 @@
 package org.lokrusta.sqlprometheus.exec;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 import java.net.URI;
 import java.net.URLEncoder;
 import java.net.http.HttpClient;
@@ -7,12 +10,18 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 public final class PrometheusClient {
+    private static final ObjectMapper JSON = new ObjectMapper();
     private static final ConcurrentHashMap<Integer, HttpClient> CLIENTS = new ConcurrentHashMap<>();
 
     private PrometheusClient() {
@@ -55,6 +64,50 @@ public final class PrometheusClient {
             throw e;
         } catch (Exception e) {
             throw new IllegalStateException("Prometheus query failed: " + url, e);
+        }
+    }
+
+    public static SeriesMetadata series(String baseUrl,
+                                       String metric,
+                                       int connectTimeoutSeconds,
+                                       int queryTimeoutSeconds) {
+        String url = stripSlash(baseUrl) + "/api/v1/series?match%5B%5D=" + encode(metric);
+        try {
+            HttpResponse<String> response = client(connectTimeoutSeconds).send(
+                    HttpRequest.newBuilder(URI.create(url))
+                            .timeout(Duration.ofSeconds(queryTimeoutSeconds))
+                            .GET()
+                            .build(),
+                    HttpResponse.BodyHandlers.ofString());
+            if (response.statusCode() != 200) {
+                throw new IllegalStateException("Prometheus HTTP " + response.statusCode() + ": " + response.body());
+            }
+            JsonNode root = JSON.readTree(response.body());
+            if (!"success".equals(root.path("status").asText())) {
+                throw new IllegalStateException("Prometheus series failed: " + response.body());
+            }
+            JsonNode data = root.path("data");
+            if (!data.isArray() || data.isEmpty()) {
+                return SeriesMetadata.absent();
+            }
+            Set<String> labels = new LinkedHashSet<>();
+            for (JsonNode series : data) {
+                series.fieldNames().forEachRemaining(name -> {
+                    if (!"__name__".equals(name)) {
+                        labels.add(name);
+                    }
+                });
+            }
+            List<String> sorted = new ArrayList<>(labels);
+            Collections.sort(sorted);
+            return new SeriesMetadata(true, sorted);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new IllegalStateException("Prometheus series interrupted", e);
+        } catch (IllegalStateException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new IllegalStateException("Prometheus series failed: " + url, e);
         }
     }
 

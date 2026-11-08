@@ -1,0 +1,24 @@
+spring:
+  application:
+    name: sql-prometheus-demo
+  datasource:
+    url: jdbc:h2:mem:ecom;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+  sql:
+    init:
+      mode: always
+      schema-locations: classpath:sql/schema.sql
+      data-locations: classpath:sql/seed.sql
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,prometheus
+  metrics:
+    distribution:
+      # Histogram buckets for operation_time, from 0.1 ms to 1 s.
+      slo:
+        operation_time: 100us,200us,500us,1ms,2ms,5ms,10ms,20ms,50ms,100ms,200ms,500ms,1s

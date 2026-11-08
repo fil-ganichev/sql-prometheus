@@ -1,0 +1,70 @@
+plugins {
+    id 'org.springframework.boot' version '3.4.5'
+    id 'io.spring.dependency-management' version '1.1.7'
+    id 'org.openapi.generator' version '7.12.0'
+    id 'java'
+}
+
+group = 'org.lokrusta'
+version = '1.0.0'
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_17
+    targetCompatibility = JavaVersion.VERSION_17
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+    implementation 'org.springframework.boot:spring-boot-starter-validation'
+    implementation 'org.springframework.boot:spring-boot-starter-jdbc'
+    implementation 'org.springframework.boot:spring-boot-starter-actuator'
+    implementation 'io.micrometer:micrometer-registry-prometheus'
+    implementation 'io.swagger.core.v3:swagger-annotations:2.2.28'
+    runtimeOnly 'com.h2database:h2'
+
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+}
+
+def openApiOutput = layout.buildDirectory.dir('generated/openapi')
+
+openApiGenerate {
+    generatorName = 'spring'
+    inputSpec = "$projectDir/src/main/resources/openapi/demo-openapi.json"
+    outputDir = openApiOutput.get().asFile.path
+    apiPackage = 'org.lokrusta.sqlprometheus.demo.api'
+    modelPackage = 'org.lokrusta.sqlprometheus.demo.api.model'
+    configOptions = [
+            interfaceOnly         : 'true',
+            useTags               : 'true',
+            useSpringBoot3        : 'true',
+            dateLibrary           : 'java8',
+            openApiNullable       : 'false',
+            performBeanValidation : 'true',
+            skipDefaultInterface  : 'true',
+            hideGenerationTimestamp: 'true'
+    ]
+    globalProperties = [
+            apis           : '',
+            models         : '',
+            supportingFiles: 'ApiUtil.java'
+    ]
+}
+
+sourceSets.main.java.srcDir openApiOutput.map { it.dir('src/main/java') }
+
+tasks.named('compileJava') {
+    dependsOn 'openApiGenerate'
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.release = 17
+    options.encoding = 'UTF-8'
+}
+
+tasks.named('test') {
+    useJUnitPlatform()
+}

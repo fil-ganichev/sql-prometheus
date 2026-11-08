@@ -1,1 +1,3 @@
 rootProject.name = 'sql-prometheus'
+
+include 'demo'

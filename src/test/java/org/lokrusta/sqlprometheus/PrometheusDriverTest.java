@@ -279,6 +279,7 @@ class PrometheusDriverTest {
         assertTrue(summed.contains("window=[1m]"), summed);
         assertTrue(summed.contains("start=["), summed);
         assertFalse(summed.contains("PROM_RATE"), summed);
+        assertFalse(summed.contains("agg=["), summed);
     }
 
     @Test
@@ -504,6 +505,71 @@ class PrometheusDriverTest {
         assertTrue(grouped.contains("quantile=[0.95]"), grouped);
     }
 
+    @Test
+    void prometheusAggregateKeepsLabelsNeededAfterTheCall() throws Exception {
+        String joined = pushedPlan(logicalPlan("""
+                SELECT c.image, PROM_SUM(PROM_RATE(c."value", '5m'))
+                FROM container_cpu_usage_seconds_total c
+                JOIN node_cpu_seconds_total n ON c.instance = n.instance
+                WHERE c.timestamp > NOW() - INTERVAL '5' MINUTE
+                """));
+        assertTrue(joined.contains("function=[rate]"), joined);
+        assertTrue(joined.contains("window=[5m]"), joined);
+        assertTrue(joined.contains("agg=[sum]"), joined);
+        assertTrue(joined.contains("aggBy=[instance, image]"), joined);
+        assertTrue(joined.contains("start=["), joined);
+        assertFalse(joined.contains("PROM_SUM"), joined);
+        int container = joined.indexOf("container_cpu_usage_seconds_total");
+        int node = joined.indexOf("node_cpu_seconds_total");
+        assertTrue(container >= 0 && node > container, joined);
+        assertFalse(joined.substring(node).contains("agg="), joined);
+
+        List<String> queries = prometheusQueries("""
+                SELECT c.image, PROM_SUM(PROM_RATE(c."value", '5m'))
+                FROM container_cpu_usage_seconds_total c
+                JOIN node_cpu_seconds_total n ON c.instance = n.instance
+                WHERE c.timestamp > TIMESTAMP '2026-01-01 00:00:00'
+                """, false);
+        assertTrue(queries.stream().anyMatch(query -> query.contains(
+                "sum by (image, instance) (rate(container_cpu_usage_seconds_total[5m]))")), queries.toString());
+
+        String outside = pushedPlan(logicalPlan("""
+                SELECT ABS(PROM_SUM(PROM_RATE("value", '5m')))
+                FROM node_cpu_seconds_total
+                WHERE mode = 'idle'
+                """));
+        assertTrue(outside.contains("scalars=[abs]"), outside);
+        assertTrue(outside.contains("agg=[sum]"), outside);
+        assertTrue(outside.contains("function=[rate]"), outside);
+        assertFalse(outside.contains("aggBy="), outside);
+
+        String inside = pushedPlan(logicalPlan("""
+                SELECT PROM_SUM(ROUND(PROM_RATE("value", '5m')))
+                FROM node_cpu_seconds_total
+                WHERE mode = 'idle'
+                """));
+        assertTrue(inside.contains("inner=[round]"), inside);
+        assertTrue(inside.contains("agg=[sum]"), inside);
+        assertFalse(inside.contains("aggBy="), inside);
+
+        String averaged = pushedPlan(logicalPlan("""
+                SELECT instance, PROM_AVG("value")
+                FROM node_cpu_seconds_total
+                """));
+        assertTrue(averaged.contains("agg=[avg]"), averaged);
+        assertTrue(averaged.contains("aggBy=[instance]"), averaged);
+        assertFalse(averaged.contains("function="), averaged);
+
+        assertThrows(ValidationException.class, () -> logicalPlan("""
+                SELECT PROM_HOLT_WINTERS("value", '5m', 1.5, 0.1)
+                FROM node_cpu_seconds_total
+                """));
+        assertThrows(IllegalStateException.class, () -> pushedPlan(logicalPlan("""
+                SELECT PROM_SUM(PROM_AVG("value"))
+                FROM node_cpu_seconds_total
+                """)));
+    }
+
     private static List<String> prometheusQueries(String sql) throws Exception {
         return prometheusQueries(sql, true);
     }
@@ -566,7 +632,10 @@ class PrometheusDriverTest {
                     {"PROM_INCREASE", "increase"},
                     {"PROM_DELTA", "delta"},
                     {"PROM_IDELTA", "idelta"},
-                    {"PROM_CHANGES", "changes"}
+                    {"PROM_CHANGES", "changes"},
+                    {"PROM_DERIV", "deriv"},
+                    {"PROM_RESET", "resets"},
+                    {"PROM_MAD", "mad_over_time"}
             };
             try (Connection connection = DriverManager.getConnection(url);
                  Statement statement = connection.createStatement()) {
@@ -588,6 +657,35 @@ class PrometheusDriverTest {
                         """).close();
                 String summed = URLDecoder.decode(query.get(), StandardCharsets.UTF_8);
                 assertTrue(summed.contains("rate(node_cpu_seconds_total{mode=\"idle\"}[1m])"), summed);
+                assertFalse(summed.contains("sum("), summed);
+
+                statement.executeQuery("""
+                        SELECT PROM_PREDICT_LINEAR("value", '5m', 3600)
+                        FROM node_cpu_seconds_total
+                        WHERE mode = 'idle'
+                          AND "timestamp" > TIMESTAMP '2026-01-01 00:00:00'
+                        """).close();
+                String predicted = URLDecoder.decode(query.get(), StandardCharsets.UTF_8);
+                assertTrue(predicted.contains("predict_linear(node_cpu_seconds_total{mode=\"idle\"}[5m], 3600)"), predicted);
+
+                statement.executeQuery("""
+                        SELECT PROM_HOLT_WINTERS("value", '5m', 0.5, 0.1)
+                        FROM node_cpu_seconds_total
+                        WHERE mode = 'idle'
+                          AND "timestamp" > TIMESTAMP '2026-01-01 00:00:00'
+                        """).close();
+                String smoothed = URLDecoder.decode(query.get(), StandardCharsets.UTF_8);
+                assertTrue(smoothed.contains("holt_winters(node_cpu_seconds_total{mode=\"idle\"}[5m], 0.5, 0.1)"), smoothed);
+
+                statement.executeQuery("""
+                        SELECT PROM_SUM(PROM_RATE("value", '5m'))
+                        FROM node_cpu_seconds_total
+                        WHERE mode = 'idle'
+                          AND "timestamp" > TIMESTAMP '2026-01-01 00:00:00'
+                        """).close();
+                String aggregated = URLDecoder.decode(query.get(), StandardCharsets.UTF_8);
+                assertTrue(aggregated.contains("sum(rate(node_cpu_seconds_total{mode=\"idle\"}[5m]))"), aggregated);
+                assertTrue(aggregated.contains("start="), aggregated);
             }
         } finally {
             server.stop(0);

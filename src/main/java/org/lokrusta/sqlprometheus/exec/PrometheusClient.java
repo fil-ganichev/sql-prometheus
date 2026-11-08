@@ -37,11 +37,15 @@ public final class PrometheusClient {
                                     int queryTimeoutSeconds,
                                     String promFunction,
                                     String promWindow,
+                                    String promArgs,
                                     String rateWindow,
                                     String quantilePhi,
                                     String quantileBy,
-                                    String scalars) {
-        String query = selector(metric, labelFilters, promFunction, promWindow, rateWindow, quantilePhi, quantileBy, scalars);
+                                    String scalars,
+                                    String innerScalars,
+                                    String agg,
+                                    String aggBy) {
+        String query = selector(metric, labelFilters, promFunction, promWindow, promArgs, rateWindow, quantilePhi, quantileBy, scalars, innerScalars, agg, aggBy);
         String url = stripSlash(baseUrl) + "/api/v1/query_range?query=" + encode(query)
                 + "&start=" + seconds(startMillis)
                 + "&end=" + seconds(endMillis)
@@ -115,10 +119,14 @@ public final class PrometheusClient {
                                    Map<String, String> labelFilters,
                                    String promFunction,
                                    String promWindow,
+                                   String promArgs,
                                    String rateWindow,
                                    String quantilePhi,
                                    String quantileBy,
-                                   String scalars) {
+                                   String scalars,
+                                   String innerScalars,
+                                   String agg,
+                                   String aggBy) {
         String series = metric;
         if (labelFilters != null && !labelFilters.isEmpty()) {
             String labels = labelFilters.entrySet().stream()
@@ -134,15 +142,32 @@ public final class PrometheusClient {
             String by = quantileBy == null || quantileBy.isEmpty() ? "le" : quantileBy;
             core = "histogram_quantile(" + quantilePhi + ", sum by (" + by + ") (rate(" + series + "[" + rateWindow + "])))";
         } else if (promFunction != null && !promFunction.isEmpty()) {
-            core = promFunction + "(" + series + "[" + promWindow + "])";
+            core = promFunction + "(" + series + "[" + promWindow + "]";
+            if (promArgs != null && !promArgs.isEmpty()) {
+                core += ", " + promArgs;
+            }
+            core += ")";
         } else {
             core = series;
         }
-        if (scalars != null && !scalars.isEmpty()) {
-            for (String scalar : scalars.split(",")) {
-                if (!scalar.isEmpty()) {
-                    core = scalar + "(" + core + ")";
-                }
+        core = applyScalars(core, innerScalars);
+        if (agg != null && !agg.isEmpty()) {
+            if (aggBy == null || aggBy.isEmpty()) {
+                core = agg + "(" + core + ")";
+            } else {
+                core = agg + " by (" + aggBy + ") (" + core + ")";
+            }
+        }
+        return applyScalars(core, scalars);
+    }
+
+    private static String applyScalars(String core, String scalars) {
+        if (scalars == null || scalars.isEmpty()) {
+            return core;
+        }
+        for (String scalar : scalars.split(",")) {
+            if (!scalar.isEmpty()) {
+                core = scalar + "(" + core + ")";
             }
         }
         return core;

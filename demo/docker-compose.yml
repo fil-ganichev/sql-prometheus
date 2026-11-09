@@ -1,0 +1,65 @@
+services:
+  demo:
+    build:
+      context: ..
+      dockerfile: demo/Dockerfile
+    ports:
+      - "8080:8080"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 30s
+    restart: unless-stopped
+
+  prometheus:
+    image: prom/prometheus:v2.55.1
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --storage.tsdb.retention.time=7d
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./docker/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./docker/prometheus/data:/prometheus
+    restart: unless-stopped
+
+  grafana-connector:
+    build:
+      context: ..
+      dockerfile: grafana-connector/Dockerfile
+    environment:
+      PROMETHEUS_JDBC_URL: jdbc:prometheus://prometheus:9090?step=15s&maxRows=10000
+    depends_on:
+      - prometheus
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana:11.6.11
+    ports:
+      - "3000:3000"
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_INSTALL_PLUGINS: yesoreyeram-infinity-datasource
+    volumes:
+      - ./docker/grafana/provisioning:/etc/grafana/provisioning:ro
+    depends_on:
+      - prometheus
+      - grafana-connector
+    restart: unless-stopped
+
+  k6:
+    image: grafana/k6:0.54.0
+    depends_on:
+      demo:
+        condition: service_healthy
+    environment:
+      BASE_URL: http://demo:8080
+    volumes:
+      - ./docker/k6/load.js:/scripts/load.js:ro
+    command: ["run", "/scripts/load.js"]
+    restart: "no"

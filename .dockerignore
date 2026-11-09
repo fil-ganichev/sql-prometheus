@@ -1,0 +1,6 @@
+.git
+.gradle
+**/build
+demo/docker/prometheus/data
+.tmpdoc
+*.md

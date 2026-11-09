@@ -1,0 +1,261 @@
+{
+  "uid": "demo-application",
+  "title": "Demo — прикладные метрики (ActionExecutor)",
+  "description": "Те же графики ActionExecutor, что в прикладном дашборде autocache: сверху SQL через grafana-connector, снизу PromQL.",
+  "tags": ["demo", "sql-prometheus"],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "10s",
+  "time": { "from": "now-15m", "to": "now" },
+  "graphTooltip": 1,
+  "editable": true,
+  "panels": [
+    {
+      "id": 1,
+      "type": "row",
+      "title": "sql-prometheus",
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 0 }
+    },
+    {
+      "id": 2,
+      "type": "timeseries",
+      "title": "operation_code — RPS (SUCCESS / ERROR)",
+      "description": "PROM_SUM(PROM_RATE) по operation_code_total. Ряд называется кодом результата.",
+      "datasource": { "type": "yesoreyeram-infinity-datasource", "uid": "sql-prometheus" },
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 1 },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps",
+          "color": { "mode": "palette-classic" },
+          "custom": { "drawStyle": "line", "fillOpacity": 10, "lineInterpolation": "smooth", "showPoints": "never" }
+        },
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "SUCCESS" },
+            "properties": [{ "id": "color", "value": { "mode": "fixed", "fixedColor": "green" } }]
+          },
+          {
+            "matcher": { "id": "byName", "options": "ERROR" },
+            "properties": [{ "id": "color", "value": { "mode": "fixed", "fixedColor": "red" } }]
+          }
+        ]
+      },
+      "options": { "legend": { "displayMode": "table", "placement": "bottom", "showLegend": true, "calcs": ["mean", "max"] } },
+      "transformations": [
+        { "id": "partitionByValues", "options": { "fields": ["code"], "keepFields": false } }
+      ],
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "yesoreyeram-infinity-datasource", "uid": "sql-prometheus" },
+          "type": "json",
+          "source": "url",
+          "format": "table",
+          "parser": "backend",
+          "root_selector": "",
+          "url": "http://grafana-connector:8081/query",
+          "url_options": {
+            "method": "POST",
+            "body_type": "raw",
+            "body_content_type": "application/json",
+            "data": "{\"sql\":\"SELECT \\\"timestamp\\\", code, PROM_SUM(PROM_RATE(\\\"value\\\", '1m')) AS \\\"value\\\" FROM operation_code_total WHERE \\\"timestamp\\\" >= TIMESTAMP '${__timeFrom:date:YYYY-MM-DD HH:mm:ss}' AND \\\"timestamp\\\" < TIMESTAMP '${__timeTo:date:YYYY-MM-DD HH:mm:ss}'\"}"
+          },
+          "columns": [
+            { "selector": "timestamp", "text": "time", "type": "timestamp" },
+            { "selector": "value", "text": "value", "type": "number" },
+            { "selector": "code", "text": "code", "type": "string" }
+          ]
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "type": "timeseries",
+      "title": "operation_time — среднее время",
+      "description": "rate суммы делён на rate счётчика, окно 1 минута. Ряд называется действием.",
+      "datasource": { "type": "yesoreyeram-infinity-datasource", "uid": "sql-prometheus" },
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 9 },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "color": { "mode": "palette-classic" },
+          "custom": { "drawStyle": "line", "fillOpacity": 0, "lineInterpolation": "smooth", "showPoints": "never" }
+        }
+      },
+      "options": { "legend": { "displayMode": "table", "placement": "bottom", "showLegend": true, "calcs": ["mean", "max"] } },
+      "transformations": [
+        { "id": "partitionByValues", "options": { "fields": ["process_action"], "keepFields": false } }
+      ],
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "yesoreyeram-infinity-datasource", "uid": "sql-prometheus" },
+          "type": "json",
+          "source": "url",
+          "format": "table",
+          "parser": "backend",
+          "root_selector": "",
+          "url": "http://grafana-connector:8081/query",
+          "url_options": {
+            "method": "POST",
+            "body_type": "raw",
+            "body_content_type": "application/json",
+            "data": "{\"sql\":\"SELECT s.\\\"timestamp\\\" AS \\\"timestamp\\\", s.process_action, s.\\\"value\\\" / c.\\\"value\\\" AS \\\"value\\\" FROM (SELECT \\\"timestamp\\\", process_action, PROM_SUM(PROM_RATE(\\\"value\\\", '1m')) AS \\\"value\\\" FROM operation_time_seconds_sum WHERE \\\"timestamp\\\" >= TIMESTAMP '${__timeFrom:date:YYYY-MM-DD HH:mm:ss}' AND \\\"timestamp\\\" < TIMESTAMP '${__timeTo:date:YYYY-MM-DD HH:mm:ss}') s JOIN (SELECT \\\"timestamp\\\", process_action, PROM_SUM(PROM_RATE(\\\"value\\\", '1m')) AS \\\"value\\\" FROM operation_time_seconds_count WHERE \\\"timestamp\\\" >= TIMESTAMP '${__timeFrom:date:YYYY-MM-DD HH:mm:ss}' AND \\\"timestamp\\\" < TIMESTAMP '${__timeTo:date:YYYY-MM-DD HH:mm:ss}') c ON s.\\\"timestamp\\\" = c.\\\"timestamp\\\" AND s.process_action = c.process_action\"}"
+          },
+          "columns": [
+            { "selector": "timestamp", "text": "time", "type": "timestamp" },
+            { "selector": "value", "text": "value", "type": "number" },
+            { "selector": "process_action", "text": "process_action", "type": "string" }
+          ]
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "type": "timeseries",
+      "title": "service_error — RPS по типу исключения",
+      "description": "PROM_SUM(PROM_RATE) по service_error_total. Ряд называется классом исключения.",
+      "datasource": { "type": "yesoreyeram-infinity-datasource", "uid": "sql-prometheus" },
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 17 },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps",
+          "color": { "mode": "palette-classic" },
+          "custom": { "drawStyle": "line", "fillOpacity": 10, "lineInterpolation": "smooth", "showPoints": "never" }
+        }
+      },
+      "options": { "legend": { "displayMode": "table", "placement": "bottom", "showLegend": true, "calcs": ["mean", "max"] } },
+      "transformations": [
+        { "id": "partitionByValues", "options": { "fields": ["exception"], "keepFields": false } }
+      ],
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "yesoreyeram-infinity-datasource", "uid": "sql-prometheus" },
+          "type": "json",
+          "source": "url",
+          "format": "table",
+          "parser": "backend",
+          "root_selector": "",
+          "url": "http://grafana-connector:8081/query",
+          "url_options": {
+            "method": "POST",
+            "body_type": "raw",
+            "body_content_type": "application/json",
+            "data": "{\"sql\":\"SELECT \\\"timestamp\\\", exception, PROM_SUM(PROM_RATE(\\\"value\\\", '1m')) AS \\\"value\\\" FROM service_error_total WHERE \\\"timestamp\\\" >= TIMESTAMP '${__timeFrom:date:YYYY-MM-DD HH:mm:ss}' AND \\\"timestamp\\\" < TIMESTAMP '${__timeTo:date:YYYY-MM-DD HH:mm:ss}'\"}"
+          },
+          "columns": [
+            { "selector": "timestamp", "text": "time", "type": "timestamp" },
+            { "selector": "value", "text": "value", "type": "number" },
+            { "selector": "exception", "text": "exception", "type": "string" }
+          ]
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "type": "row",
+      "title": "PromQL",
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 25 }
+    },
+    {
+      "id": 6,
+      "type": "timeseries",
+      "title": "operation_code — RPS (SUCCESS / ERROR)",
+      "description": "sum(rate(operation_code_total[1m])) по кодам SUCCESS и ERROR.",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 26 },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps",
+          "color": { "mode": "palette-classic" },
+          "custom": { "drawStyle": "line", "fillOpacity": 10, "lineInterpolation": "smooth", "showPoints": "never" }
+        },
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "SUCCESS" },
+            "properties": [{ "id": "color", "value": { "mode": "fixed", "fixedColor": "green" } }]
+          },
+          {
+            "matcher": { "id": "byName", "options": "ERROR" },
+            "properties": [{ "id": "color", "value": { "mode": "fixed", "fixedColor": "red" } }]
+          }
+        ]
+      },
+      "options": { "legend": { "displayMode": "table", "placement": "bottom", "showLegend": true, "calcs": ["mean", "max"] } },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "editorMode": "code",
+          "expr": "sum(rate(operation_code_total{job=\"demo\",code=\"SUCCESS\"}[1m]))",
+          "legendFormat": "SUCCESS",
+          "range": true
+        },
+        {
+          "refId": "B",
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "editorMode": "code",
+          "expr": "sum(rate(operation_code_total{job=\"demo\",code=\"ERROR\"}[1m]))",
+          "legendFormat": "ERROR",
+          "range": true
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "type": "timeseries",
+      "title": "operation_time — среднее время",
+      "description": "sum(rate(operation_time_seconds_sum[1m])) / sum(rate(operation_time_seconds_count[1m])) по действию.",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 34 },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "color": { "mode": "palette-classic" },
+          "custom": { "drawStyle": "line", "fillOpacity": 0, "lineInterpolation": "smooth", "showPoints": "never" }
+        }
+      },
+      "options": { "legend": { "displayMode": "table", "placement": "bottom", "showLegend": true, "calcs": ["mean", "max"] } },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "editorMode": "code",
+          "expr": "sum(rate(operation_time_seconds_sum{job=\"demo\"}[1m])) by (process_action) / sum(rate(operation_time_seconds_count{job=\"demo\"}[1m])) by (process_action)",
+          "legendFormat": "{{process_action}}",
+          "range": true
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "type": "timeseries",
+      "title": "service_error — RPS по типу исключения",
+      "description": "sum by (exception) (rate(service_error_total[1m])).",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 42 },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps",
+          "color": { "mode": "palette-classic" },
+          "custom": { "drawStyle": "line", "fillOpacity": 10, "lineInterpolation": "smooth", "showPoints": "never" }
+        }
+      },
+      "options": { "legend": { "displayMode": "table", "placement": "bottom", "showLegend": true, "calcs": ["mean", "max"] } },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "editorMode": "code",
+          "expr": "sum by (exception) (rate(service_error_total{job=\"demo\"}[1m]))",
+          "legendFormat": "{{exception}}",
+          "range": true
+        }
+      ]
+    }
+  ]
+}

@@ -703,6 +703,22 @@ class PrometheusDriverTest {
         assertFalse(afterPlan.contains("CURRENT_TIMESTAMP"), afterPlan);
     }
 
+    @Test
+    void percentileRateWindowFollowsTimestampIntervalDifference() throws Exception {
+        String sql = """
+                SELECT service_name,
+                       PERCENTILE_CONT(0.95) WITHIN GROUP (ORDER BY le) AS p95
+                FROM http_request_duration_seconds_bucket
+                WHERE "timestamp" > TIMESTAMP '2026-01-01 00:30:00'
+                    - (INTERVAL '1767223800' SECOND - INTERVAL '1767222000' SECOND)
+                  AND "timestamp" >= TIMESTAMP '2026-01-01 00:00:00'
+                  AND "timestamp" < TIMESTAMP '2026-01-01 00:30:00'
+                GROUP BY service_name
+                """;
+        String afterPlan = pushedPlan(logicalPlan(sql));
+        assertTrue(afterPlan.contains("range=[30m]"), afterPlan);
+    }
+
     static String pushedPlan(RelNode before) {
         HepPlanner hepPlanner = new HepPlanner(PrometheusPrograms.hepProgram());
         hepPlanner.setRoot(before);

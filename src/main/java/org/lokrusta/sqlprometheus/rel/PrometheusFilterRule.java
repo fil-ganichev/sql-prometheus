@@ -145,9 +145,14 @@ public class PrometheusFilterRule extends RelRule<RelRule.Config> {
     }
 
     private static String promqlInterval(RexNode node) {
+        Long millis = intervalMillis(node);
+        return millis == null ? null : promqlDuration(millis);
+    }
+
+    private static Long intervalMillis(RexNode node) {
         if (node instanceof RexLiteral literal) {
             if (literal.getTypeName().getFamily() == SqlTypeFamily.INTERVAL_DAY_TIME) {
-                return promqlDuration(longValue(literal));
+                return longValue(literal);
             }
             return null;
         }
@@ -155,14 +160,24 @@ public class PrometheusFilterRule extends RelRule<RelRule.Config> {
             return null;
         }
         if (call.getKind() == SqlKind.CAST && !call.getOperands().isEmpty()) {
-            return promqlInterval(call.getOperands().get(0));
+            return intervalMillis(call.getOperands().get(0));
         }
-        if ((call.getKind() == SqlKind.MINUS || call.getKind() == SqlKind.PLUS || call.getKind() == SqlKind.TIMES)
-                && call.getOperands().size() == 2) {
-            String left = promqlInterval(call.getOperands().get(0));
-            return left != null ? left : promqlInterval(call.getOperands().get(1));
+        if (call.getOperands().size() != 2) {
+            return null;
         }
-        return null;
+        if (call.getKind() == SqlKind.TIMES) {
+            Long left = intervalMillis(call.getOperands().get(0));
+            return left != null ? left : intervalMillis(call.getOperands().get(1));
+        }
+        if (call.getKind() != SqlKind.MINUS && call.getKind() != SqlKind.PLUS) {
+            return null;
+        }
+        Long left = intervalMillis(call.getOperands().get(0));
+        Long right = intervalMillis(call.getOperands().get(1));
+        if (left == null || right == null) {
+            return left != null ? left : right;
+        }
+        return call.getKind() == SqlKind.MINUS ? left - right : left + right;
     }
 
     private static String promqlDuration(long millis) {

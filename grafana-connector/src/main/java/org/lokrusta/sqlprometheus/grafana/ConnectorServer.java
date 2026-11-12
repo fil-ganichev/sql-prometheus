@@ -10,7 +10,8 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 /**
- * HTTP entry point used by Grafana Infinity. SQL is executed as received.
+ * HTTP entry point for Grafana. Infinity posts SQL and receives a JSON array.
+ * The datasource plugin posts {@code format=frames} and receives Grafana frames.
  */
 public final class ConnectorServer implements AutoCloseable {
     public static final int DEFAULT_THREADS = 8;
@@ -55,6 +56,10 @@ public final class ConnectorServer implements AutoCloseable {
     }
 
     private void health(HttpExchange exchange) throws IOException {
+        if ("OPTIONS".equals(exchange.getRequestMethod())) {
+            write(exchange, 204, new byte[0]);
+            return;
+        }
         if (!"GET".equals(exchange.getRequestMethod())) {
             write(exchange, 405, QueryService.errorBody("Method not allowed"));
             return;
@@ -63,6 +68,10 @@ public final class ConnectorServer implements AutoCloseable {
     }
 
     private void query(HttpExchange exchange) throws IOException {
+        if ("OPTIONS".equals(exchange.getRequestMethod())) {
+            write(exchange, 204, new byte[0]);
+            return;
+        }
         byte[] body = exchange.getRequestBody().readAllBytes();
         if (!"POST".equals(exchange.getRequestMethod())) {
             write(exchange, 405, QueryService.errorBody("Method not allowed"));
@@ -73,7 +82,15 @@ public final class ConnectorServer implements AutoCloseable {
     }
 
     private static void write(HttpExchange exchange, int status, byte[] body) throws IOException {
+        exchange.getResponseHeaders().set("Access-Control-Allow-Origin", "*");
+        exchange.getResponseHeaders().set("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+        exchange.getResponseHeaders().set("Access-Control-Allow-Headers", "Content-Type, Accept");
         exchange.getResponseHeaders().set("Content-Type", "application/json; charset=utf-8");
+        if (status == 204) {
+            exchange.sendResponseHeaders(status, -1);
+            exchange.close();
+            return;
+        }
         exchange.sendResponseHeaders(status, body.length);
         exchange.getResponseBody().write(body);
         exchange.close();

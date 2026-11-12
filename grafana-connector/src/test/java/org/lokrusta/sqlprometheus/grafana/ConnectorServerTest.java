@@ -153,6 +153,55 @@ class ConnectorServerTest {
     }
 
     @Test
+    void framesNameTheSeriesAfterLabelsAndKeepInfinityRows() throws Exception {
+        String payload = "{\"sql\":" + JSON.writeValueAsString(SQL) + ",\"format\":\"frames\"}";
+        HttpResponse<String> frames = send("POST", "/query", payload);
+        assertEquals(200, frames.statusCode(), frames.body());
+        JsonNode frame = JSON.readTree(frames.body()).get("frames").get(0);
+        assertEquals("a:9100", frame.get("schema").get("name").asText());
+        assertEquals("time", frame.get("schema").get("fields").get(0).get("type").asText());
+        assertEquals("Value", frame.get("schema").get("fields").get(1).get("name").asText());
+        assertEquals(1_594_671_549_000L, frame.get("data").get("values").get(0).get(0).asLong());
+        assertEquals(0.12d, frame.get("data").get("values").get(1).get(0).asDouble(), 0.0000001d);
+
+        HttpResponse<String> rows = send("POST", "/query", "{\"sql\":" + JSON.writeValueAsString(SQL) + "}");
+        assertTrue(JSON.readTree(rows.body()).isArray(), rows.body());
+    }
+
+    @Test
+    void timeFilterUsesTheDashboardRange() throws Exception {
+        String sql = """
+                SELECT "timestamp", "value"
+                FROM http_request_duration_seconds_bucket
+                WHERE $__timeFilter("timestamp")
+                """;
+        String payload = "{\"sql\":" + JSON.writeValueAsString(sql)
+                + ",\"from\":1594598400000,\"to\":1594684800000}";
+        HttpResponse<String> response = send("POST", "/query", payload);
+        assertEquals(200, response.statusCode(), response.body());
+        long start = querySeconds(rangeQueries.get(0), "start");
+        long end = querySeconds(rangeQueries.get(0), "end");
+        assertTrue(start >= 1_594_598_400L - 1 && start <= 1_594_598_400L + 5, rangeQueries.get(0));
+        assertTrue(end >= 1_594_684_800L - 5 && end <= 1_594_684_800L + 1, rangeQueries.get(0));
+    }
+
+    @Test
+    void timeFilterWithoutRangeIsRejectedBeforePrometheus() throws Exception {
+        String payload = "{\"sql\":\"SELECT \\\"value\\\" FROM http_request_duration_seconds_bucket WHERE $__timeFilter(\\\"timestamp\\\")\"}";
+        HttpResponse<String> response = send("POST", "/query", payload);
+        assertEquals(400, response.statusCode(), response.body());
+        assertEquals("$__timeFilter requires from and to", JSON.readTree(response.body()).get("message").asText());
+        assertEquals(0, prometheusCalls.get());
+    }
+
+    @Test
+    void browserPreflightIsAllowed() throws Exception {
+        HttpResponse<String> response = send("OPTIONS", "/query", null);
+        assertEquals(204, response.statusCode());
+        assertEquals("*", response.headers().firstValue("Access-Control-Allow-Origin").orElse(""));
+    }
+
+    @Test
     void labelFilterFromSqlReachesPrometheus() throws Exception {
         String sql = """
                 SELECT "timestamp", "value"

@@ -16,3 +16,10 @@ datasources:
     jsonData:
       allowedHosts:
         - http://grafana-connector:8081
+
+  - name: SQL Prometheus
+    uid: sql-prometheus-plugin
+    type: sqlprometheus-datasource
+    access: direct
+    jsonData:
+      url: http://localhost:8081

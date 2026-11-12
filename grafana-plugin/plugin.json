@@ -1,0 +1,26 @@
+{
+  "type": "datasource",
+  "name": "SQL Prometheus",
+  "id": "sqlprometheus-datasource",
+  "metrics": true,
+  "backend": false,
+  "alerting": false,
+  "annotations": false,
+  "info": {
+    "description": "SQL for Prometheus through grafana-connector. Columns and $__timeFilter come from the connector.",
+    "author": {
+      "name": "sql-prometheus"
+    },
+    "keywords": ["prometheus", "sql"],
+    "logos": {
+      "small": "img/logo.svg",
+      "large": "img/logo.svg"
+    },
+    "version": "1.0.0",
+    "updated": "2026-11-11"
+  },
+  "dependencies": {
+    "grafanaDependency": ">=11.0.0",
+    "plugins": []
+  }
+}

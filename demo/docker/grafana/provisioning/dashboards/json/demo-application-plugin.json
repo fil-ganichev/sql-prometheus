@@ -1,0 +1,807 @@
+{
+  "uid": "demo-application-plugin",
+  "title": "Demo — прикладные метрики (SQL plugin)",
+  "description": "Те же графики, что на дашборде Infinity. Слева SQL через плагин SQL Prometheus и grafana-connector, справа PromQL.",
+  "tags": [
+    "demo",
+    "sql-prometheus"
+  ],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "10s",
+  "time": {
+    "from": "now-15m",
+    "to": "now"
+  },
+  "graphTooltip": 1,
+  "editable": true,
+  "panels": [
+    {
+      "id": 2,
+      "type": "timeseries",
+      "title": "SQL · operation_code — RPS (SUCCESS / ERROR)",
+      "description": "PROM_SUM(PROM_RATE) по operation_code_total. Ряд называется кодом результата.",
+      "datasource": {
+        "type": "sqlprometheus-datasource",
+        "uid": "sql-prometheus-plugin"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 0
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "lineInterpolation": "smooth",
+            "showPoints": "never"
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "SUCCESS"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "green"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "ERROR"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "red"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true,
+          "calcs": [
+            "mean",
+            "max"
+          ]
+        }
+      },
+      "transformations": [],
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "sqlprometheus-datasource",
+            "uid": "sql-prometheus-plugin"
+          },
+          "sql": "SELECT \"timestamp\", code, PROM_SUM(PROM_RATE(\"value\", '1m')) AS \"value\"\nFROM operation_code_total\nWHERE $__timeFilter(\"timestamp\")"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "type": "timeseries",
+      "title": "SQL · operation_time — среднее время",
+      "description": "rate суммы делён на rate счётчика, окно 1 минута. Ряд называется действием.",
+      "datasource": {
+        "type": "sqlprometheus-datasource",
+        "uid": "sql-prometheus-plugin"
+      },
+      "gridPos": {
+        "h": 12,
+        "w": 12,
+        "x": 0,
+        "y": 8
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "lineInterpolation": "smooth",
+            "showPoints": "never"
+          }
+        }
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true,
+          "calcs": [
+            "mean",
+            "max"
+          ]
+        }
+      },
+      "transformations": [],
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "sqlprometheus-datasource",
+            "uid": "sql-prometheus-plugin"
+          },
+          "sql": "SELECT s.\"timestamp\" AS \"timestamp\", s.process_action, s.\"value\" / c.\"value\" AS \"value\"\nFROM (\n  SELECT \"timestamp\", process_action, PROM_SUM(PROM_RATE(\"value\", '1m')) AS \"value\"\n  FROM operation_time_seconds_sum\n  WHERE $__timeFilter(\"timestamp\")\n) s\nJOIN (\n  SELECT \"timestamp\", process_action, PROM_SUM(PROM_RATE(\"value\", '1m')) AS \"value\"\n  FROM operation_time_seconds_count\n  WHERE $__timeFilter(\"timestamp\")\n) c\nON s.\"timestamp\" = c.\"timestamp\" AND s.process_action = c.process_action"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "type": "timeseries",
+      "title": "SQL · service_error — RPS по типу исключения",
+      "description": "PROM_SUM(PROM_RATE) по service_error_total. Ряд называется классом исключения.",
+      "datasource": {
+        "type": "sqlprometheus-datasource",
+        "uid": "sql-prometheus-plugin"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 20
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "lineInterpolation": "smooth",
+            "showPoints": "never"
+          }
+        }
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true,
+          "calcs": [
+            "mean",
+            "max"
+          ]
+        }
+      },
+      "transformations": [],
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "sqlprometheus-datasource",
+            "uid": "sql-prometheus-plugin"
+          },
+          "sql": "SELECT \"timestamp\", exception, PROM_SUM(PROM_RATE(\"value\", '1m')) AS \"value\"\nFROM service_error_total\nWHERE $__timeFilter(\"timestamp\")"
+        }
+      ]
+    },
+    {
+      "id": 9,
+      "type": "table",
+      "title": "SQL · Медленные действия с ошибками",
+      "description": "Все действия за выбранный интервал: 95-й перцентиль и скорость ошибок. Нет ряда ERROR — в rps ноль. Порядок колонок и сортировка такие же, как справа.",
+      "datasource": {
+        "type": "sqlprometheus-datasource",
+        "uid": "sql-prometheus-plugin"
+      },
+      "gridPos": {
+        "h": 15,
+        "w": 12,
+        "x": 0,
+        "y": 28
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto"
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "95й перцентиль"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "s"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "rps"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "reqps"
+              },
+              {
+                "id": "decimals",
+                "value": 3
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "footer": {
+          "show": false
+        },
+        "sortBy": [
+          {
+            "displayName": "операция",
+            "desc": false
+          }
+        ]
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "sqlprometheus-datasource",
+            "uid": "sql-prometheus-plugin"
+          },
+          "sql": "SELECT lat.process_action AS \"операция\",\n       lat.p95_seconds AS \"95й перцентиль\",\n       COALESCE(err.error_rate, 0) AS rps\nFROM (\n  SELECT process_action,\n         PERCENTILE_CONT(0.95) WITHIN GROUP (ORDER BY le) AS p95_seconds\n  FROM operation_time_seconds_bucket\n  WHERE $__timeFilter(\"timestamp\")\n  GROUP BY process_action\n) lat\nLEFT JOIN (\n  SELECT process_action, AVG(PROM_IRATE(\"value\", '5m')) AS error_rate\n  FROM operation_code_total\n  WHERE code = 'ERROR' AND $__timeFilter(\"timestamp\")\n  GROUP BY process_action\n) err ON lat.process_action = err.process_action"
+        }
+      ],
+      "transformations": []
+    },
+    {
+      "id": 10,
+      "type": "timeseries",
+      "title": "SQL · Чтение и запись — RPS",
+      "description": "get* и search* — чтение, остальные process_action — запись. irate считается в Prometheus, сумма по типу — в SQL, отдельно на каждую точку времени.",
+      "datasource": {
+        "type": "sqlprometheus-datasource",
+        "uid": "sql-prometheus-plugin"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 43
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "lineInterpolation": "smooth",
+            "showPoints": "never"
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Read"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "blue"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Write"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "orange"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true,
+          "calcs": [
+            "mean",
+            "max"
+          ]
+        }
+      },
+      "transformations": [],
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "sqlprometheus-datasource",
+            "uid": "sql-prometheus-plugin"
+          },
+          "sql": "SELECT \"timestamp\",\n       CASE WHEN process_action LIKE 'get%' OR process_action LIKE 'search%' THEN 'Read' ELSE 'Write' END AS op_type,\n       SUM(PROM_IRATE(\"value\", '5m')) AS \"value\"\nFROM operation_code_total\nWHERE $__timeFilter(\"timestamp\")\nGROUP BY \"timestamp\",\n         CASE WHEN process_action LIKE 'get%' OR process_action LIKE 'search%' THEN 'Read' ELSE 'Write' END"
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "type": "timeseries",
+      "title": "PromQL · operation_code — RPS (SUCCESS / ERROR)",
+      "description": "sum(rate(operation_code_total[1m])) по кодам SUCCESS и ERROR.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 0
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "lineInterpolation": "smooth",
+            "showPoints": "never"
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "SUCCESS"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "green"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "ERROR"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "red"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true,
+          "calcs": [
+            "mean",
+            "max"
+          ]
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "editorMode": "code",
+          "expr": "sum(rate(operation_code_total{job=\"demo\",code=\"SUCCESS\"}[1m]))",
+          "legendFormat": "SUCCESS",
+          "range": true
+        },
+        {
+          "refId": "B",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "editorMode": "code",
+          "expr": "sum(rate(operation_code_total{job=\"demo\",code=\"ERROR\"}[1m]))",
+          "legendFormat": "ERROR",
+          "range": true
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "type": "timeseries",
+      "title": "PromQL · operation_time — среднее время",
+      "description": "sum(rate(operation_time_seconds_sum[1m])) / sum(rate(operation_time_seconds_count[1m])) по действию.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": {
+        "h": 12,
+        "w": 12,
+        "x": 12,
+        "y": 8
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "lineInterpolation": "smooth",
+            "showPoints": "never"
+          }
+        }
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true,
+          "calcs": [
+            "mean",
+            "max"
+          ]
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "editorMode": "code",
+          "expr": "sum(rate(operation_time_seconds_sum{job=\"demo\"}[1m])) by (process_action) / sum(rate(operation_time_seconds_count{job=\"demo\"}[1m])) by (process_action)",
+          "legendFormat": "{{process_action}}",
+          "range": true
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "type": "timeseries",
+      "title": "PromQL · service_error — RPS по типу исключения",
+      "description": "sum by (exception) (rate(service_error_total[1m])).",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 20
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "lineInterpolation": "smooth",
+            "showPoints": "never"
+          }
+        }
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true,
+          "calcs": [
+            "mean",
+            "max"
+          ]
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "editorMode": "code",
+          "expr": "sum by (exception) (rate(service_error_total{job=\"demo\"}[1m]))",
+          "legendFormat": "{{exception}}",
+          "range": true
+        }
+      ]
+    },
+    {
+      "id": 11,
+      "type": "table",
+      "title": "PromQL · Медленные действия с ошибками",
+      "description": "Те же строки и колонки, что слева. 95-й перцентиль — histogram_quantile за выбранный интервал, rps — rate ошибок; если ошибок не было, ноль.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": {
+        "h": 15,
+        "w": 12,
+        "x": 12,
+        "y": 28
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto"
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "95й перцентиль"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "s"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "rps"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "reqps"
+              },
+              {
+                "id": "decimals",
+                "value": 3
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "footer": {
+          "show": false
+        },
+        "sortBy": [
+          {
+            "displayName": "операция",
+            "desc": false
+          }
+        ]
+      },
+      "transformations": [
+        {
+          "id": "labelsToFields",
+          "options": {
+            "mode": "columns"
+          }
+        },
+        {
+          "id": "joinByField",
+          "options": {
+            "byField": "process_action",
+            "mode": "outer"
+          }
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true,
+              "Time 2": true,
+              "Time #A": true,
+              "Time #B": true
+            },
+            "renameByName": {
+              "process_action": "операция",
+              "Value #A": "95й перцентиль",
+              "Value #B": "rps"
+            }
+          }
+        },
+        {
+          "id": "organize",
+          "options": {
+            "indexByName": {
+              "операция": 0,
+              "95й перцентиль": 1,
+              "rps": 2
+            }
+          }
+        }
+      ],
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "instant": true,
+          "range": false,
+          "expr": "histogram_quantile(0.95, sum by (le, process_action) (rate(operation_time_seconds_bucket{job=\"demo\"}[$__range])))",
+          "legendFormat": ""
+        },
+        {
+          "refId": "B",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "instant": true,
+          "range": false,
+          "expr": "sum by (process_action) (rate(operation_code_total{job=\"demo\",code=\"ERROR\"}[$__range])) or sum by (process_action) (rate(operation_time_seconds_count{job=\"demo\"}[$__range])) * 0",
+          "legendFormat": ""
+        }
+      ]
+    },
+    {
+      "id": 12,
+      "type": "timeseries",
+      "title": "PromQL · Чтение и запись — RPS",
+      "description": "get* и search* — чтение, остальные process_action — запись. В PromQL это два фильтра вместо CASE.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 43
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "lineInterpolation": "smooth",
+            "showPoints": "never"
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Read"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "blue"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Write"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "orange"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true,
+          "calcs": [
+            "mean",
+            "max"
+          ]
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "editorMode": "code",
+          "expr": "sum(irate(operation_code_total{job=\"demo\",process_action=~\"get.*|search.*\"}[5m]))",
+          "legendFormat": "Read",
+          "range": true
+        },
+        {
+          "refId": "B",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "editorMode": "code",
+          "expr": "sum(irate(operation_code_total{job=\"demo\",process_action!~\"get.*|search.*\"}[5m]))",
+          "legendFormat": "Write",
+          "range": true
+        }
+      ]
+    }
+  ]
+}

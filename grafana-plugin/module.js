@@ -25,57 +25,56 @@ System.register(["@grafana/data", "@grafana/ui", "react"], function (exports) {
         return url.endsWith("/") ? url.slice(0, -1) : url;
       }
 
-      function SqlDatasource(instanceSettings) {
-        DataSourceApi.call(this, instanceSettings);
-        this.baseUrl = connectorUrl(instanceSettings);
+      class SqlDatasource extends DataSourceApi {
+        constructor(instanceSettings) {
+          super(instanceSettings);
+          this.baseUrl = connectorUrl(instanceSettings);
+        }
+
+        async query(request) {
+          var frames = [];
+          for (var i = 0; i < request.targets.length; i++) {
+            var target = request.targets[i];
+            if (target.hide || !target.sql || !String(target.sql).trim()) {
+              continue;
+            }
+            var response = await fetch(this.baseUrl + "/query", {
+              method: "POST",
+              headers: { "Content-Type": "application/json", Accept: "application/json" },
+              body: JSON.stringify({
+                sql: target.sql,
+                from: request.range.from.valueOf(),
+                to: request.range.to.valueOf(),
+                format: "frames",
+              }),
+            });
+            var payload = await response.json();
+            if (!response.ok) {
+              throw new Error(payload && payload.message ? payload.message : response.statusText);
+            }
+            var received = payload.frames || [];
+            for (var f = 0; f < received.length; f++) {
+              var frame = toDataFrame(received[f]);
+              frame.refId = target.refId;
+              frames.push(frame);
+            }
+          }
+          return { data: frames };
+        }
+
+        async testDatasource() {
+          try {
+            var response = await fetch(this.baseUrl + "/health");
+            var payload = await response.json();
+            if (response.ok && payload.status === "up") {
+              return { status: "success", message: "Connector is up" };
+            }
+            return { status: "error", message: (payload && payload.message) || response.statusText };
+          } catch (error) {
+            return { status: "error", message: error instanceof Error ? error.message : String(error) };
+          }
+        }
       }
-
-      SqlDatasource.prototype = Object.create(DataSourceApi.prototype);
-      SqlDatasource.prototype.constructor = SqlDatasource;
-
-      SqlDatasource.prototype.query = async function (request) {
-        var frames = [];
-        for (var i = 0; i < request.targets.length; i++) {
-          var target = request.targets[i];
-          if (target.hide || !target.sql || !String(target.sql).trim()) {
-            continue;
-          }
-          var response = await fetch(this.baseUrl + "/query", {
-            method: "POST",
-            headers: { "Content-Type": "application/json", Accept: "application/json" },
-            body: JSON.stringify({
-              sql: target.sql,
-              from: request.range.from.valueOf(),
-              to: request.range.to.valueOf(),
-              format: "frames",
-            }),
-          });
-          var payload = await response.json();
-          if (!response.ok) {
-            throw new Error(payload && payload.message ? payload.message : response.statusText);
-          }
-          var received = payload.frames || [];
-          for (var f = 0; f < received.length; f++) {
-            var frame = toDataFrame(received[f]);
-            frame.refId = target.refId;
-            frames.push(frame);
-          }
-        }
-        return { data: frames };
-      };
-
-      SqlDatasource.prototype.testDatasource = async function () {
-        try {
-          var response = await fetch(this.baseUrl + "/health");
-          var payload = await response.json();
-          if (response.ok && payload.status === "up") {
-            return { status: "success", message: "Connector is up" };
-          }
-          return { status: "error", message: (payload && payload.message) || response.statusText };
-        } catch (error) {
-          return { status: "error", message: error instanceof Error ? error.message : String(error) };
-        }
-      };
 
       function QueryEditor(props) {
         return React.createElement(

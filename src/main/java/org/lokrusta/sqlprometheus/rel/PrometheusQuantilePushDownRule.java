@@ -121,8 +121,13 @@ public class PrometheusQuantilePushDownRule extends RelRule<RelRule.Config> {
             return null;
         }
         String orderedName = le.scan.getRowType().getFieldNames().get(le.column);
-        if (!"le".equalsIgnoreCase(orderedName) || le.scan.getRateWindow() == null) {
+        if (!"le".equalsIgnoreCase(orderedName)) {
             return null;
+        }
+        if (le.scan.getRateWindow() == null) {
+            throw new IllegalStateException(
+                    "PERCENTILE_CONT requires an INTERVAL on the timestamp predicate so histogram_quantile gets a rate window. "
+                            + "For example: WHERE \"timestamp\" > NOW() - INTERVAL '5' MINUTE");
         }
         return new Quantile(call, le.scan, phi, sumBy(aggregate, le.scan), le.scan.getRateWindow(), -1);
     }

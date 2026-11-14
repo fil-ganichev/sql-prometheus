@@ -704,6 +704,28 @@ class PrometheusDriverTest {
     }
 
     @Test
+    void percentileWithoutIntervalExplainsHowToSetTheWindow() throws Exception {
+        String sql = """
+                SELECT service_name,
+                       PERCENTILE_CONT(0.95) WITHIN GROUP (ORDER BY le) AS p95
+                FROM http_request_duration_seconds_bucket
+                WHERE "timestamp" > TIMESTAMP '2026-01-01 00:00:00'
+                GROUP BY service_name
+                """;
+        IllegalStateException planned = assertThrows(IllegalStateException.class, () -> pushedPlan(logicalPlan(sql)));
+        assertTrue(planned.getMessage().contains("INTERVAL '5' MINUTE"), planned.getMessage());
+
+        SQLException executed = assertThrows(SQLException.class, () -> prometheusQueries(sql));
+        StringBuilder text = new StringBuilder();
+        for (Throwable current = executed; current != null; current = current.getCause()) {
+            if (current.getMessage() != null) {
+                text.append(current.getMessage()).append('\n');
+            }
+        }
+        assertTrue(text.toString().contains("INTERVAL '5' MINUTE"), text.toString());
+    }
+
+    @Test
     void percentileRateWindowFollowsTimestampIntervalDifference() throws Exception {
         String sql = """
                 SELECT service_name,

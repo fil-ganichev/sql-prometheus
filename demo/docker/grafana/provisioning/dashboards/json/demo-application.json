@@ -344,7 +344,7 @@
       "id": 9,
       "type": "table",
       "title": "SQL · Медленные действия с ошибками",
-      "description": "Все действия за выбранный интервал: 95-й перцентиль и скорость ошибок. Нет ряда ERROR — в rps ноль. Порядок колонок и сортировка такие же, как справа.",
+      "description": "Действия, у которых были ошибки: 95-й перцентиль и скорость ошибок. Окно перцентиля — последние 5 минут. Строки без ошибок не показываются.",
       "datasource": {
         "type": "yesoreyeram-infinity-datasource",
         "uid": "sql-prometheus"
@@ -422,7 +422,7 @@
             "method": "POST",
             "body_type": "raw",
             "body_content_type": "application/json",
-            "data": "{\"sql\": \"SELECT lat.process_action AS process_action, lat.p95_seconds AS p95_seconds, COALESCE(err.error_rate, 0) AS error_rate FROM (SELECT process_action, PERCENTILE_CONT(0.95) WITHIN GROUP (ORDER BY le) AS p95_seconds FROM operation_time_seconds_bucket WHERE \\\"timestamp\\\" > TIMESTAMP '${__timeTo:date:YYYY-MM-DD HH:mm:ss}' - (INTERVAL '${__timeTo:date:seconds}' SECOND - INTERVAL '${__timeFrom:date:seconds}' SECOND) AND \\\"timestamp\\\" >= TIMESTAMP '${__timeFrom:date:YYYY-MM-DD HH:mm:ss}' AND \\\"timestamp\\\" <= TIMESTAMP '${__timeTo:date:YYYY-MM-DD HH:mm:ss}' GROUP BY process_action) lat LEFT JOIN (SELECT process_action, AVG(PROM_IRATE(\\\"value\\\", '5m')) AS error_rate FROM operation_code_total WHERE code = 'ERROR' AND \\\"timestamp\\\" >= TIMESTAMP '${__timeFrom:date:YYYY-MM-DD HH:mm:ss}' AND \\\"timestamp\\\" <= TIMESTAMP '${__timeTo:date:YYYY-MM-DD HH:mm:ss}' GROUP BY process_action) err ON lat.process_action = err.process_action\"}"
+            "data": "{\"sql\": \"SELECT lat.process_action AS process_action, PERCENTILE_CONT(0.95) WITHIN GROUP (ORDER BY lat.le) AS p95_seconds, AVG(PROM_IRATE(err.value, '5m')) AS error_rate FROM operation_time_seconds_bucket lat JOIN operation_code_total err ON lat.process_action = err.process_action WHERE err.code = 'ERROR' AND lat.\\\"timestamp\\\" > TIMESTAMP '${__timeTo:date:YYYY-MM-DD HH:mm:ss}' - (INTERVAL '${__timeTo:date:seconds}' SECOND - INTERVAL '${__timeFrom:date:seconds}' SECOND) AND lat.\\\"timestamp\\\" >= TIMESTAMP '${__timeFrom:date:YYYY-MM-DD HH:mm:ss}' AND lat.\\\"timestamp\\\" <= TIMESTAMP '${__timeTo:date:YYYY-MM-DD HH:mm:ss}' GROUP BY lat.process_action\"}"
           },
           "columns": [
             {
@@ -794,7 +794,7 @@
       "id": 11,
       "type": "table",
       "title": "PromQL · Медленные действия с ошибками",
-      "description": "Те же строки и колонки, что слева. 95-й перцентиль — histogram_quantile за выбранный интервал, rps — rate ошибок; если ошибок не было, ноль.",
+      "description": "Те же строки и колонки, что слева. В таблице только действия, у которых был ряд ERROR.",
       "datasource": {
         "type": "prometheus",
         "uid": "prometheus"
@@ -866,7 +866,7 @@
           "id": "joinByField",
           "options": {
             "byField": "process_action",
-            "mode": "outer"
+            "mode": "inner"
           }
         },
         {
@@ -920,7 +920,7 @@
           "format": "table",
           "instant": true,
           "range": false,
-          "expr": "sum by (process_action) (rate(operation_code_total{job=\"demo\",code=\"ERROR\"}[$__range])) or sum by (process_action) (rate(operation_time_seconds_count{job=\"demo\"}[$__range])) * 0",
+          "expr": "sum by (process_action) (rate(operation_code_total{job=\"demo\",code=\"ERROR\"}[$__range]))",
           "legendFormat": ""
         }
       ]

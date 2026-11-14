@@ -209,7 +209,7 @@
       "id": 9,
       "type": "table",
       "title": "SQL · Медленные действия с ошибками",
-      "description": "Все действия за выбранный интервал: 95-й перцентиль и скорость ошибок. Нет ряда ERROR — в rps ноль. Порядок колонок и сортировка такие же, как справа.",
+      "description": "Действия, у которых были ошибки: 95-й перцентиль и скорость ошибок. Окно берётся из выбранного диапазона дашборда. Строки без ошибок не показываются.",
       "datasource": {
         "type": "sqlprometheus-datasource",
         "uid": "sql-prometheus-plugin"
@@ -277,7 +277,7 @@
             "type": "sqlprometheus-datasource",
             "uid": "sql-prometheus-plugin"
           },
-          "sql": "SELECT lat.process_action AS \"операция\",\n       lat.p95_seconds AS \"95й перцентиль\",\n       COALESCE(err.error_rate, 0) AS rps\nFROM (\n  SELECT process_action,\n         PERCENTILE_CONT(0.95) WITHIN GROUP (ORDER BY le) AS p95_seconds\n  FROM operation_time_seconds_bucket\n  WHERE $__timeFilter(\"timestamp\")\n  GROUP BY process_action\n) lat\nLEFT JOIN (\n  SELECT process_action, AVG(PROM_IRATE(\"value\", '5m')) AS error_rate\n  FROM operation_code_total\n  WHERE code = 'ERROR' AND $__timeFilter(\"timestamp\")\n  GROUP BY process_action\n) err ON lat.process_action = err.process_action"
+          "sql": "SELECT lat.process_action AS \"операция\",\n       PERCENTILE_CONT(0.95) WITHIN GROUP (ORDER BY lat.le) AS \"95й перцентиль\",\n       AVG(PROM_IRATE(err.\"value\", '5m')) AS rps\nFROM operation_time_seconds_bucket lat\nJOIN operation_code_total err\n  ON lat.process_action = err.process_action\nWHERE err.code = 'ERROR'\n  AND $__timeFilter(lat.\"timestamp\")\nGROUP BY lat.process_action"
         }
       ],
       "transformations": []
@@ -575,7 +575,7 @@
       "id": 11,
       "type": "table",
       "title": "PromQL · Медленные действия с ошибками",
-      "description": "Те же строки и колонки, что слева. 95-й перцентиль — histogram_quantile за выбранный интервал, rps — rate ошибок; если ошибок не было, ноль.",
+      "description": "Те же строки и колонки, что слева. В таблице только действия, у которых был ряд ERROR.",
       "datasource": {
         "type": "prometheus",
         "uid": "prometheus"
@@ -647,7 +647,7 @@
           "id": "joinByField",
           "options": {
             "byField": "process_action",
-            "mode": "outer"
+            "mode": "inner"
           }
         },
         {
@@ -701,7 +701,7 @@
           "format": "table",
           "instant": true,
           "range": false,
-          "expr": "sum by (process_action) (rate(operation_code_total{job=\"demo\",code=\"ERROR\"}[$__range])) or sum by (process_action) (rate(operation_time_seconds_count{job=\"demo\"}[$__range])) * 0",
+          "expr": "sum by (process_action) (rate(operation_code_total{job=\"demo\",code=\"ERROR\"}[$__range]))",
           "legendFormat": ""
         }
       ]

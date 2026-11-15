@@ -575,6 +575,10 @@ class PrometheusDriverTest {
     }
 
     private static List<String> prometheusQueries(String sql, boolean singleRow) throws Exception {
+        return prometheusQueries(sql, singleRow, "");
+    }
+
+    private static List<String> prometheusQueries(String sql, boolean singleRow, String jdbcSuffix) throws Exception {
         Class.forName("org.lokrusta.sqlprometheus.driver.PrometheusDriver");
         long now = System.currentTimeMillis() / 1000;
         String body = "{\"status\":\"success\",\"data\":{\"resultType\":\"matrix\",\"result\":["
@@ -592,7 +596,7 @@ class PrometheusDriverTest {
         serveBuiltinSeries(server);
         server.start();
         try {
-            String url = "jdbc:prometheus://localhost:" + server.getAddress().getPort();
+            String url = "jdbc:prometheus://localhost:" + server.getAddress().getPort() + jdbcSuffix;
             try (Connection connection = DriverManager.getConnection(url);
                  Statement statement = connection.createStatement();
                  ResultSet rows = statement.executeQuery(sql)) {
@@ -690,6 +694,138 @@ class PrometheusDriverTest {
         } finally {
             server.stop(0);
         }
+    }
+
+    @Test
+    void rateWhenUsesTheDriverStepUnlessTheCallSetsOne() throws Exception {
+        String[][] calls = {
+                {"PROM_RATE_WHEN(\"value\" > 1, '5m')", "rate((node_cpu_seconds_total{mode=\"idle\"} > 1)[5m:15s])"},
+                {"PROM_IRATE_WHEN(\"value\" >= 2, '5m')", "irate((node_cpu_seconds_total{mode=\"idle\"} >= 2)[5m:15s])"},
+                {"PROM_INCREASE_WHEN(\"value\" < 3, '5m')", "increase((node_cpu_seconds_total{mode=\"idle\"} < 3)[5m:15s])"},
+                {"PROM_DELTA_WHEN(\"value\" <= 4, '5m')", "delta((node_cpu_seconds_total{mode=\"idle\"} <= 4)[5m:15s])"},
+                {"PROM_IDELTA_WHEN(\"value\" = 5, '5m')", "idelta((node_cpu_seconds_total{mode=\"idle\"} == 5)[5m:15s])"},
+                {"PROM_CHANGES_WHEN(6 < \"value\", '5m')", "changes((node_cpu_seconds_total{mode=\"idle\"} > 6)[5m:15s])"},
+                {"PROM_DERIV_WHEN(\"value\" > 1, '5m')", "deriv((node_cpu_seconds_total{mode=\"idle\"} > 1)[5m:15s])"},
+                {"PROM_RESET_WHEN(\"value\" > 1, '5m')", "resets((node_cpu_seconds_total{mode=\"idle\"} > 1)[5m:15s])"},
+                {"PROM_MAD_WHEN(\"value\" > 1, '5m')", "mad_over_time((node_cpu_seconds_total{mode=\"idle\"} > 1)[5m:15s])"},
+                {"PROM_PREDICT_LINEAR_WHEN(\"value\" > 1, '5m', 3600)",
+                        "predict_linear((node_cpu_seconds_total{mode=\"idle\"} > 1)[5m:15s], 3600)"},
+                {"PROM_HOLT_WINTERS_WHEN(\"value\" > 1, '5m', 0.5, 0.1)",
+                        "holt_winters((node_cpu_seconds_total{mode=\"idle\"} > 1)[5m:15s], 0.5, 0.1)"}
+        };
+        for (String[] call : calls) {
+            List<String> queries = prometheusQueries("""
+                    SELECT %s
+                    FROM node_cpu_seconds_total
+                    WHERE mode = 'idle'
+                      AND "timestamp" > TIMESTAMP '2026-01-01 00:00:00'
+                    """.formatted(call[0]), false);
+            String promql = queries.get(0);
+            assertTrue(promql.contains(call[1]), promql);
+            assertTrue(promql.contains("start="), promql);
+        }
+
+        List<String> explicit = prometheusQueries("""
+                SELECT PROM_SUM(PROM_RATE_WHEN("value" > 1, '5m', '1m'))
+                FROM node_cpu_seconds_total
+                WHERE "timestamp" > TIMESTAMP '2026-01-01 00:00:00'
+                """, false, "?step=30s");
+        assertTrue(explicit.get(0).contains("sum(rate((node_cpu_seconds_total > 1)[5m:1m]))"), explicit.get(0));
+
+        List<String> fromConnection = prometheusQueries("""
+                SELECT PROM_RATE_WHEN("value" > 1, '5m')
+                FROM node_cpu_seconds_total
+                WHERE "timestamp" > TIMESTAMP '2026-01-01 00:00:00'
+                """, false, "?step=30s");
+        assertTrue(fromConnection.get(0).contains("rate((node_cpu_seconds_total > 1)[5m:30s])"), fromConnection.get(0));
+        assertFalse(fromConnection.get(0).contains("[5m:]"), fromConnection.get(0));
+    }
+
+    @Test
+    void valuePredicateBesideWindowFunctionIsRejected() throws Exception {
+        String[][] calls = {
+                {"PROM_RATE", "PROM_RATE(\"value\", '5m')", "PROM_RATE_WHEN"},
+                {"PROM_IRATE", "PROM_IRATE(\"value\", '5m')", "PROM_IRATE_WHEN"},
+                {"PROM_INCREASE", "PROM_INCREASE(\"value\", '5m')", "PROM_INCREASE_WHEN"},
+                {"PROM_DELTA", "PROM_DELTA(\"value\", '5m')", "PROM_DELTA_WHEN"},
+                {"PROM_IDELTA", "PROM_IDELTA(\"value\", '5m')", "PROM_IDELTA_WHEN"},
+                {"PROM_CHANGES", "PROM_CHANGES(\"value\", '5m')", "PROM_CHANGES_WHEN"},
+                {"PROM_DERIV", "PROM_DERIV(\"value\", '5m')", "PROM_DERIV_WHEN"},
+                {"PROM_RESET", "PROM_RESET(\"value\", '5m')", "PROM_RESET_WHEN"},
+                {"PROM_MAD", "PROM_MAD(\"value\", '5m')", "PROM_MAD_WHEN"},
+                {"PROM_PREDICT_LINEAR", "PROM_PREDICT_LINEAR(\"value\", '5m', 3600)", "PROM_PREDICT_LINEAR_WHEN"},
+                {"PROM_HOLT_WINTERS", "PROM_HOLT_WINTERS(\"value\", '5m', 0.5, 0.1)", "PROM_HOLT_WINTERS_WHEN"},
+                {"PROM_RATE_WHEN", "PROM_RATE_WHEN(\"value\" > 1, '5m')", "second time"},
+                {"PROM_DELTA_WHEN", "PROM_DELTA_WHEN(\"value\" > 1, '5m')", "second time"},
+                {"PROM_PREDICT_LINEAR_WHEN", "PROM_PREDICT_LINEAR_WHEN(\"value\" > 1, '5m', 3600)", "second time"},
+                {"PROM_HOLT_WINTERS_WHEN", "PROM_HOLT_WINTERS_WHEN(\"value\" > 1, '5m', 0.5, 0.1)", "second time"}
+        };
+        for (String[] call : calls) {
+            IllegalStateException error = assertThrows(IllegalStateException.class, () -> pushedPlan(logicalPlan("""
+                    SELECT %s
+                    FROM node_cpu_seconds_total
+                    WHERE mode = 'idle'
+                      AND "value" > 1
+                      AND "timestamp" > TIMESTAMP '2026-01-01 00:00:00'
+                    """.formatted(call[1]))), call[0]);
+            assertTrue(error.getMessage().contains(call[2]), error.getMessage());
+            if (!call[0].endsWith("_WHEN")) {
+                assertTrue(error.getMessage().contains("cannot share a scan"), error.getMessage());
+                assertTrue(error.getMessage().contains("filter the alias"), error.getMessage());
+            } else {
+                assertTrue(error.getMessage().contains("already compares"), error.getMessage());
+            }
+        }
+
+        IllegalStateException nested = assertThrows(IllegalStateException.class, () -> pushedPlan(logicalPlan("""
+                SELECT PROM_RATE("value", '5m')
+                FROM (
+                    SELECT "value", "timestamp"
+                    FROM node_cpu_seconds_total
+                    WHERE "value" > 1
+                      AND "timestamp" > TIMESTAMP '2026-01-01 00:00:00'
+                ) t
+                """)));
+        assertTrue(nested.getMessage().contains("PROM_RATE_WHEN"), nested.getMessage());
+
+        IllegalStateException wideStep = assertThrows(IllegalStateException.class, () -> pushedPlan(logicalPlan("""
+                SELECT PROM_RATE_WHEN("value" > 1, '5m', '5m')
+                FROM node_cpu_seconds_total
+                WHERE "timestamp" > TIMESTAMP '2026-01-01 00:00:00'
+                """)));
+        assertTrue(wideStep.getMessage().contains("must be shorter than the rate window"), wideStep.getMessage());
+
+        String summed = pushedPlan(logicalPlan("""
+                SELECT PROM_SUM("value")
+                FROM node_cpu_seconds_total
+                WHERE "value" > 1
+                  AND "timestamp" > TIMESTAMP '2026-01-01 00:00:00'
+                """));
+        assertTrue(summed.contains("agg=[sum]"), summed);
+    }
+
+    @Test
+    void valuePredicateBesideWindowFunctionReachesJdbc() {
+        SQLException executed = assertThrows(SQLException.class, () -> prometheusQueries("""
+                SELECT PROM_DELTA("value", '5m')
+                FROM node_cpu_seconds_total
+                WHERE "value" > 1
+                  AND "timestamp" > TIMESTAMP '2026-01-01 00:00:00'
+                """));
+        String text = causes(executed);
+        assertTrue(text.contains("PROM_DELTA cannot share a scan"), text);
+        assertTrue(text.contains("PROM_DELTA_WHEN"), text);
+        assertTrue(text.contains("filter the alias"), text);
+    }
+
+    private static String causes(Throwable error) {
+        StringBuilder text = new StringBuilder();
+        for (Throwable current = error; current != null; current = current.getCause()) {
+            if (current.getMessage() != null) {
+                text.append(current.getMessage()).append('\n');
+            }
+        }
+        return text.toString();
     }
 
     @Test

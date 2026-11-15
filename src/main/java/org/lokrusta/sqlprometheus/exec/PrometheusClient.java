@@ -18,11 +18,15 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 public final class PrometheusClient {
     private static final ObjectMapper JSON = new ObjectMapper();
     private static final ConcurrentHashMap<Integer, HttpClient> CLIENTS = new ConcurrentHashMap<>();
+    private static final Pattern WHEN_ARGS = Pattern.compile(
+            "^(>=|<=|==|>|<) (-?\\d+(?:\\.\\d+)?)(?:;(.*))?$");
 
     private PrometheusClient() {
     }
@@ -142,11 +146,20 @@ public final class PrometheusClient {
             String by = quantileBy == null || quantileBy.isEmpty() ? "le" : quantileBy;
             core = "histogram_quantile(" + quantilePhi + ", sum by (" + by + ") (rate(" + series + "[" + rateWindow + "])))";
         } else if (promFunction != null && !promFunction.isEmpty()) {
-            core = promFunction + "(" + series + "[" + promWindow + "]";
-            if (promArgs != null && !promArgs.isEmpty()) {
-                core += ", " + promArgs;
+            Matcher when = promArgs == null ? null : WHEN_ARGS.matcher(promArgs);
+            if (when != null && when.matches()) {
+                core = promFunction + "((" + series + " " + when.group(1) + " " + when.group(2) + ")[" + promWindow + "]";
+                if (when.group(3) != null) {
+                    core += ", " + when.group(3);
+                }
+                core += ")";
+            } else {
+                core = promFunction + "(" + series + "[" + promWindow + "]";
+                if (promArgs != null && !promArgs.isEmpty()) {
+                    core += ", " + promArgs;
+                }
+                core += ")";
             }
-            core += ")";
         } else {
             core = series;
         }

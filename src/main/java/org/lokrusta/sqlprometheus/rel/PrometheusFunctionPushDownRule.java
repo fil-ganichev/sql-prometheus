@@ -238,6 +238,10 @@ public class PrometheusFunctionPushDownRule extends RelRule<RelRule.Config> {
             Target target = resolve(input, parsed.value.getIndex());
             boolean pushedFunction = parsed.function != null;
             boolean pushedAggregate = parsed.agg != null;
+            if (parsed.whenCompare != null && (target == null || target.column != 1)) {
+                throw new IllegalStateException(
+                        parsed.sqlName + " compares the value column with a numeric literal");
+            }
             if (target == null
                     || target.column != 1
                     || (pushedFunction && parsed.window == null)
@@ -250,8 +254,28 @@ public class PrometheusFunctionPushDownRule extends RelRule<RelRule.Config> {
                 }
                 return super.visitCall(call);
             }
+            if (pushedFunction && parsed.sqlName != null) {
+                rejectValuePredicate(input, target.scan, parsed.sqlName);
+            }
+            String window = parsed.window;
+            List<String> args = parsed.args;
+            if (parsed.whenCompare != null) {
+                String step = parsed.whenStep != null
+                        ? parsed.whenStep
+                        : target.scan.getPrometheusTable().options().step();
+                long stepMillis = PrometheusSqlOperatorTable.durationMillis(step);
+                long windowMillis = PrometheusSqlOperatorTable.durationMillis(parsed.window);
+                if (stepMillis < 0 || windowMillis < 0 || stepMillis >= windowMillis) {
+                    throw new IllegalStateException(parsed.sqlName + " step " + step
+                            + " must be shorter than the rate window " + parsed.window);
+                }
+                window = parsed.window + ":" + step;
+                args = List.of(parsed.whenExtra == null || parsed.whenExtra.isEmpty()
+                        ? parsed.whenCompare
+                        : parsed.whenCompare + ";" + parsed.whenExtra);
+            }
             Assignment assignment = new Assignment(
-                    parsed.function, parsed.window, parsed.args, parsed.agg, parsed.innerScalars, parsed.scalars);
+                    parsed.function, window, args, parsed.agg, parsed.innerScalars, parsed.scalars);
             Assignment existing = assignments.get(target.scan);
             if (existing == null) {
                 assignments.put(target.scan, assignment);
@@ -288,17 +312,34 @@ public class PrometheusFunctionPushDownRule extends RelRule<RelRule.Config> {
         String window = null;
         List<String> args = List.of();
         RexInputRef value = null;
+        String sqlName = null;
+        String whenCompare = null;
+        String whenStep = null;
+        String whenExtra = null;
         if (cursor instanceof RexCall current) {
-            function = PrometheusSqlOperatorTable.promqlName(current.getOperator().getName());
-            if (function != null) {
-                value = current.getOperands().isEmpty() ? null : valueRef(current.getOperands().get(0));
-                window = current.getOperands().size() >= 2 ? windowOf(current.getOperands().get(1)) : null;
-                args = arguments(current);
-                if ("predict_linear".equals(function) && window != null && args.size() != 1) {
-                    throw new IllegalStateException("PROM_PREDICT_LINEAR seconds must be a numeric literal");
-                }
-                if ("holt_winters".equals(function) && window != null && !holtFactors(args)) {
-                    throw new IllegalStateException("PROM_HOLT_WINTERS factors must be numeric literals between 0 and 1");
+            String operator = current.getOperator().getName();
+            if (operator != null && operator.toUpperCase(Locale.ROOT).endsWith("_WHEN")) {
+                WhenCall when = parseWhen(current);
+                function = when.promql;
+                value = when.value;
+                window = when.window;
+                sqlName = when.sqlName;
+                whenCompare = when.compare;
+                whenStep = when.step;
+                whenExtra = when.extra;
+            } else {
+                function = PrometheusSqlOperatorTable.promqlName(operator);
+                if (function != null) {
+                    sqlName = operator.toUpperCase(Locale.ROOT);
+                    value = current.getOperands().isEmpty() ? null : valueRef(current.getOperands().get(0));
+                    window = current.getOperands().size() >= 2 ? windowOf(current.getOperands().get(1)) : null;
+                    args = arguments(current);
+                    if ("predict_linear".equals(function) && window != null && args.size() != 1) {
+                        throw new IllegalStateException("PROM_PREDICT_LINEAR seconds must be a numeric literal");
+                    }
+                    if ("holt_winters".equals(function) && window != null && !holtFactors(args)) {
+                        throw new IllegalStateException("PROM_HOLT_WINTERS factors must be numeric literals between 0 and 1");
+                    }
                 }
             }
         } else if (cursor instanceof RexInputRef ref) {
@@ -309,7 +350,145 @@ public class PrometheusFunctionPushDownRule extends RelRule<RelRule.Config> {
         }
         Collections.reverse(scalars);
         Collections.reverse(innerScalars);
-        return new Parsed(value, function, window, args, agg, List.copyOf(innerScalars), List.copyOf(scalars));
+        return new Parsed(value, function, window, args, agg, List.copyOf(innerScalars), List.copyOf(scalars),
+                sqlName, whenCompare, whenStep, whenExtra);
+    }
+
+    private static WhenCall parseWhen(RexCall call) {
+        String sqlName = call.getOperator().getName().toUpperCase(Locale.ROOT);
+        String promql = PrometheusSqlOperatorTable.promqlName(sqlName.substring(0, sqlName.length() - "_WHEN".length()));
+        if (promql == null || call.getOperands().isEmpty()) {
+            throw new IllegalStateException(sqlName + " compares the value column with a numeric literal");
+        }
+        Comparison comparison = comparisonOf(call.getOperands().get(0));
+        if (comparison == null) {
+            throw new IllegalStateException(sqlName + " compares the value column with a numeric literal");
+        }
+        String window = call.getOperands().size() > 1 ? windowOf(call.getOperands().get(1)) : null;
+        if (window == null) {
+            throw new IllegalStateException(sqlName + " window must be a duration literal, for example '5m'");
+        }
+        int extras = switch (sqlName) {
+            case "PROM_PREDICT_LINEAR_WHEN" -> 1;
+            case "PROM_HOLT_WINTERS_WHEN" -> 2;
+            default -> 0;
+        };
+        int size = call.getOperands().size();
+        if (size == 3 + extras && omitted(call.getOperands().get(2 + extras))) {
+            size = 2 + extras;
+        }
+        if (size < 2 + extras || size > 3 + extras) {
+            throw new IllegalStateException(sqlName + " step must be a duration literal, for example '15s'");
+        }
+        List<String> extraArgs = new ArrayList<>();
+        for (int i = 0; i < extras; i++) {
+            String number = numberOf(call.getOperands().get(2 + i));
+            if (number == null) {
+                throw new IllegalStateException(sqlName + " extra arguments must be numeric literals");
+            }
+            extraArgs.add(number);
+        }
+        if ("PROM_HOLT_WINTERS_WHEN".equals(sqlName) && !holtFactors(extraArgs)) {
+            throw new IllegalStateException("PROM_HOLT_WINTERS factors must be numeric literals between 0 and 1");
+        }
+        String step = null;
+        if (size == 3 + extras) {
+            step = windowOf(call.getOperands().get(2 + extras));
+            if (step == null) {
+                throw new IllegalStateException(sqlName + " step must be a duration literal, for example '15s'");
+            }
+        }
+        String extra = extraArgs.isEmpty() ? null : String.join(", ", extraArgs);
+        return new WhenCall(comparison.value, promql, window, comparison.promql, step, extra, sqlName);
+    }
+
+    private static boolean omitted(RexNode node) {
+        node = unwrapCast(node);
+        if (node instanceof RexCall call && call.getKind() == SqlKind.DEFAULT) {
+            return true;
+        }
+        return node instanceof RexLiteral literal && literal.isNull();
+    }
+
+    private static Comparison comparisonOf(RexNode node) {
+        node = unwrapCast(node);
+        if (!(node instanceof RexCall call) || call.getOperands().size() != 2) {
+            return null;
+        }
+        RexNode left = unwrapCast(call.getOperands().get(0));
+        RexNode right = unwrapCast(call.getOperands().get(1));
+        RexInputRef value;
+        String number;
+        boolean literalOnLeft;
+        if (left instanceof RexInputRef leftRef && (number = numberOf(right)) != null) {
+            value = leftRef;
+            literalOnLeft = false;
+        } else if (right instanceof RexInputRef rightRef && (number = numberOf(left)) != null) {
+            value = rightRef;
+            literalOnLeft = true;
+        } else {
+            return null;
+        }
+        String operator = switch (call.getKind()) {
+            case GREATER_THAN -> literalOnLeft ? "<" : ">";
+            case GREATER_THAN_OR_EQUAL -> literalOnLeft ? "<=" : ">=";
+            case LESS_THAN -> literalOnLeft ? ">" : "<";
+            case LESS_THAN_OR_EQUAL -> literalOnLeft ? ">=" : "<=";
+            case EQUALS -> "==";
+            default -> null;
+        };
+        if (operator == null) {
+            return null;
+        }
+        return new Comparison(value, operator + " " + number);
+    }
+
+    private static void rejectValuePredicate(RelNode node, PrometheusTableScan scan, String sqlName) {
+        node = unwrap(node);
+        if (node instanceof LogicalFilter filter) {
+            if (mentionsValue(filter.getCondition(), filter.getInput(), scan)) {
+                throw new IllegalStateException(valueFilterMessage(sqlName));
+            }
+            rejectValuePredicate(filter.getInput(), scan, sqlName);
+        } else if (node instanceof LogicalProject project) {
+            rejectValuePredicate(project.getInput(), scan, sqlName);
+        } else if (node instanceof LogicalJoin join) {
+            rejectValuePredicate(join.getLeft(), scan, sqlName);
+            rejectValuePredicate(join.getRight(), scan, sqlName);
+        } else if (node instanceof LogicalAggregate aggregate) {
+            rejectValuePredicate(aggregate.getInput(), scan, sqlName);
+        }
+    }
+
+    private static boolean mentionsValue(RexNode expression, RelNode scope, PrometheusTableScan scan) {
+        boolean[] found = {false};
+        expression.accept(new RexShuttle() {
+            @Override
+            public RexNode visitInputRef(RexInputRef ref) {
+                Target target = resolve(scope, ref.getIndex());
+                if (target != null && target.scan == scan && target.column == 1) {
+                    found[0] = true;
+                }
+                return ref;
+            }
+        });
+        return found[0];
+    }
+
+    private static String valueFilterMessage(String sqlName) {
+        String name = sqlName.toUpperCase(Locale.ROOT);
+        if (name.endsWith("_WHEN")) {
+            String plain = name.substring(0, name.length() - "_WHEN".length());
+            return name + " already compares \"value\" before the function. "
+                    + "A WHERE predicate on \"value\" would filter the " + plain + " result a second time. "
+                    + "Remove that predicate, or filter an alias of the result.";
+        }
+        return name + " cannot share a scan with a predicate on \"value\".\n"
+                + "That predicate would filter the function result, not the raw samples.\n"
+                + "To keep results greater than 1, filter the alias:\n"
+                + "  SELECT rate_value FROM (SELECT " + name + "(\"value\", '5m') AS rate_value FROM metric) t WHERE rate_value > 1\n"
+                + "To drop raw samples before the function, use " + name + "_WHEN(\"value\" > 1, '5m').\n"
+                + "The connection step becomes the subquery resolution unless the call sets its own.";
     }
 
     private static RexNode peelScalars(RexNode cursor, List<String> scalars) {
@@ -427,6 +606,10 @@ public class PrometheusFunctionPushDownRule extends RelRule<RelRule.Config> {
         private final String agg;
         private final List<String> innerScalars;
         private final List<String> scalars;
+        private final String sqlName;
+        private final String whenCompare;
+        private final String whenStep;
+        private final String whenExtra;
 
         private Parsed(RexInputRef value,
                        String function,
@@ -434,7 +617,11 @@ public class PrometheusFunctionPushDownRule extends RelRule<RelRule.Config> {
                        List<String> args,
                        String agg,
                        List<String> innerScalars,
-                       List<String> scalars) {
+                       List<String> scalars,
+                       String sqlName,
+                       String whenCompare,
+                       String whenStep,
+                       String whenExtra) {
             this.value = value;
             this.function = function;
             this.window = window;
@@ -442,6 +629,46 @@ public class PrometheusFunctionPushDownRule extends RelRule<RelRule.Config> {
             this.agg = agg;
             this.innerScalars = innerScalars;
             this.scalars = scalars;
+            this.sqlName = sqlName;
+            this.whenCompare = whenCompare;
+            this.whenStep = whenStep;
+            this.whenExtra = whenExtra;
+        }
+    }
+
+    private static final class WhenCall {
+        private final RexInputRef value;
+        private final String promql;
+        private final String window;
+        private final String compare;
+        private final String step;
+        private final String extra;
+        private final String sqlName;
+
+        private WhenCall(RexInputRef value,
+                         String promql,
+                         String window,
+                         String compare,
+                         String step,
+                         String extra,
+                         String sqlName) {
+            this.value = value;
+            this.promql = promql;
+            this.window = window;
+            this.compare = compare;
+            this.step = step;
+            this.extra = extra;
+            this.sqlName = sqlName;
+        }
+    }
+
+    private static final class Comparison {
+        private final RexInputRef value;
+        private final String promql;
+
+        private Comparison(RexInputRef value, String promql) {
+            this.value = value;
+            this.promql = promql;
         }
     }
 

@@ -1,9 +1,12 @@
 package org.lokrusta.sqlprometheus.sql;
 
+import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlCallBinding;
 import org.apache.calcite.sql.SqlFunction;
 import org.apache.calcite.sql.SqlFunctionCategory;
 import org.apache.calcite.sql.SqlKind;
+import org.apache.calcite.sql.SqlLiteral;
+import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlOperandCountRange;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.fun.SqlLibrary;
@@ -21,6 +24,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
@@ -31,6 +35,7 @@ import java.util.regex.Pattern;
  */
 public final class PrometheusSqlOperatorTable extends ChainedSqlOperatorTable {
     private static final Pattern WINDOW = Pattern.compile("(?:[0-9]+(?:ms|s|m|h|d|w|y))+");
+    private static final Pattern DURATION_PART = Pattern.compile("(ms|s|m|h|d|w|y)");
     private static final Map<String, String> RANGE = Map.ofEntries(
             Map.entry("PROM_RATE", "rate"),
             Map.entry("PROM_IRATE", "irate"),
@@ -81,6 +86,40 @@ public final class PrometheusSqlOperatorTable extends ChainedSqlOperatorTable {
         return window != null && WINDOW.matcher(window).matches();
     }
 
+    public static long durationMillis(String text) {
+        if (text == null || !validWindow(text)) {
+            return -1;
+        }
+        Matcher matcher = DURATION_PART.matcher(text);
+        long total = 0;
+        int digitsStart = 0;
+        while (matcher.find()) {
+            if (matcher.start() == digitsStart) {
+                return -1;
+            }
+            long amount = Long.parseLong(text.substring(digitsStart, matcher.start()));
+            if (amount < 0) {
+                return -1;
+            }
+            long unit = switch (matcher.group()) {
+                case "ms" -> 1L;
+                case "s" -> 1_000L;
+                case "m" -> 60_000L;
+                case "h" -> 3_600_000L;
+                case "d" -> 86_400_000L;
+                case "w" -> 604_800_000L;
+                case "y" -> 31_536_000_000L;
+                default -> -1L;
+            };
+            if (unit < 0 || amount > Long.MAX_VALUE / unit) {
+                return -1;
+            }
+            total += amount * unit;
+            digitsStart = matcher.end();
+        }
+        return digitsStart == text.length() && total > 0 ? total : -1;
+    }
+
     private static List<SqlFunction> functions() {
         List<SqlFunction> functions = new ArrayList<>();
         for (String name : RANGE.keySet().stream().sorted().toList()) {
@@ -89,6 +128,7 @@ public final class PrometheusSqlOperatorTable extends ChainedSqlOperatorTable {
                 case "PROM_HOLT_WINTERS" -> holtWinters();
                 default -> windowFunction(name);
             });
+            functions.add(whenFunction(name));
         }
         for (String name : AGGREGATE.keySet().stream().sorted().toList()) {
             functions.add(aggregate(name));
@@ -123,6 +163,24 @@ public final class PrometheusSqlOperatorTable extends ChainedSqlOperatorTable {
                 ReturnTypes.DOUBLE,
                 null,
                 HoltOperandChecker.INSTANCE,
+                SqlFunctionCategory.USER_DEFINED_FUNCTION);
+    }
+
+    private static SqlFunction whenFunction(String name) {
+        return switch (name) {
+            case "PROM_PREDICT_LINEAR" -> whenCall("PROM_PREDICT_LINEAR_WHEN", 1, false);
+            case "PROM_HOLT_WINTERS" -> whenCall("PROM_HOLT_WINTERS_WHEN", 2, true);
+            default -> whenCall(name + "_WHEN", 0, false);
+        };
+    }
+
+    private static SqlFunction whenCall(String name, int extras, boolean unitFactors) {
+        return new SqlFunction(
+                name,
+                SqlKind.OTHER_FUNCTION,
+                ReturnTypes.DOUBLE,
+                null,
+                new WhenOperandChecker(extras, unitFactors),
                 SqlFunctionCategory.USER_DEFINED_FUNCTION);
     }
 
@@ -238,6 +296,79 @@ public final class PrometheusSqlOperatorTable extends ChainedSqlOperatorTable {
         public String getAllowedSignatures(SqlOperator op, String opName) {
             return opName + "(<numeric>, <duration literal>, <factor>, <factor>)";
         }
+    }
+
+    private static final class WhenOperandChecker implements SqlOperandTypeChecker {
+        private final int extras;
+        private final boolean unitFactors;
+
+        private WhenOperandChecker(int extras, boolean unitFactors) {
+            this.extras = extras;
+            this.unitFactors = unitFactors;
+        }
+
+        @Override
+        public boolean checkOperandTypes(SqlCallBinding callBinding, boolean throwOnFailure) {
+            int count = callBinding.getOperandCount();
+            boolean ok = count >= 2 + extras
+                    && count <= 3 + extras
+                    && valueComparison(callBinding.operand(0))
+                    && durationLiteral(callBinding, 1);
+            for (int i = 0; ok && i < extras; i++) {
+                BigDecimal number = callBinding.isOperandLiteral(2 + i, false)
+                        ? callBinding.getOperandLiteralValue(2 + i, BigDecimal.class) : null;
+                ok = number != null && (!unitFactors || unitInterval(number));
+            }
+            if (ok && count == 3 + extras) {
+                ok = durationLiteral(callBinding, 2 + extras);
+            }
+            if (!ok && throwOnFailure) {
+                throw callBinding.newValidationSignatureError();
+            }
+            return ok;
+        }
+
+        @Override
+        public SqlOperandCountRange getOperandCountRange() {
+            return SqlOperandCountRanges.between(2 + extras, 3 + extras);
+        }
+
+        @Override
+        public String getAllowedSignatures(SqlOperator op, String opName) {
+            String tail = switch (extras) {
+                case 1 -> ", <numeric literal>";
+                case 2 -> ", <factor>, <factor>";
+                default -> "";
+            };
+            return opName + "(<value comparison>, <duration literal>" + tail + " [, <step>])";
+        }
+    }
+
+    private static boolean valueComparison(SqlNode node) {
+        if (!(node instanceof SqlCall call) || call.operandCount() != 2) {
+            return false;
+        }
+        SqlKind kind = call.getKind();
+        if (kind != SqlKind.GREATER_THAN
+                && kind != SqlKind.GREATER_THAN_OR_EQUAL
+                && kind != SqlKind.LESS_THAN
+                && kind != SqlKind.LESS_THAN_OR_EQUAL
+                && kind != SqlKind.EQUALS) {
+            return false;
+        }
+        return numericLiteral(call.operand(0)) ^ numericLiteral(call.operand(1));
+    }
+
+    private static boolean numericLiteral(SqlNode node) {
+        if (node.getKind() == SqlKind.CAST && node instanceof SqlCall call && call.operandCount() >= 1) {
+            return numericLiteral(call.operand(0));
+        }
+        return node instanceof SqlLiteral literal && literal.getTypeName().getFamily() == SqlTypeFamily.NUMERIC;
+    }
+
+    private static boolean durationLiteral(SqlCallBinding callBinding, int index) {
+        return callBinding.isOperandLiteral(index, false)
+                && validWindow(callBinding.getStringLiteralOperand(index));
     }
 
     private static boolean unitInterval(BigDecimal value) {

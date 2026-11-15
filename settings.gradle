@@ -2,3 +2,4 @@ rootProject.name = 'sql-prometheus'
 
 include 'demo'
 include 'grafana-connector'
+include 'benchmarks'

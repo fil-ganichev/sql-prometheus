@@ -1,0 +1,43 @@
+plugins {
+    id 'java'
+}
+
+group = 'org.lokrusta'
+version = '1.0.0'
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_17
+    targetCompatibility = JavaVersion.VERSION_17
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    implementation project(':')
+    implementation rootProject.sourceSets.main.runtimeClasspath
+    implementation 'org.openjdk.jmh:jmh-core:1.37'
+    annotationProcessor 'org.openjdk.jmh:jmh-generator-annprocess:1.37'
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.release = 17
+    options.encoding = 'UTF-8'
+}
+
+def prometheusData = rootProject.file('demo/docker/prometheus/data').absolutePath
+
+tasks.register('benchmark', JavaExec) {
+    group = 'benchmark'
+    description = 'Compare Prometheus query_range with the SQL driver.'
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'org.lokrusta.sqlprometheus.benchmark.BenchmarkMain'
+    workingDir = rootProject.projectDir
+    jvmArgs(
+            '--add-opens=java.base/java.lang=ALL-UNNAMED',
+            '--add-opens=java.base/java.util=ALL-UNNAMED',
+            '--add-opens=java.base/java.nio=ALL-UNNAMED',
+            "-Dbenchmark.prometheusData=${prometheusData}"
+    )
+}

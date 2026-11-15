@@ -877,6 +877,212 @@ class PrometheusDriverTest {
         assertTrue(afterPlan.contains("range=[30m]"), afterPlan);
     }
 
+    @Test
+    void additionalFunctionsReachPromql() throws Exception {
+        String[][] overTime = {
+                {"PROM_AVG_OVER_TIME", "avg_over_time"},
+                {"PROM_MIN_OVER_TIME", "min_over_time"},
+                {"PROM_MAX_OVER_TIME", "max_over_time"},
+                {"PROM_SUM_OVER_TIME", "sum_over_time"},
+                {"PROM_COUNT_OVER_TIME", "count_over_time"},
+                {"PROM_STDDEV_OVER_TIME", "stddev_over_time"},
+                {"PROM_STDVAR_OVER_TIME", "stdvar_over_time"},
+                {"PROM_LAST_OVER_TIME", "last_over_time"},
+                {"PROM_PRESENT_OVER_TIME", "present_over_time"}
+        };
+        for (String[] function : overTime) {
+            String promql = prometheusQueries("""
+                    SELECT %s("value", '5m')
+                    FROM node_cpu_seconds_total
+                    WHERE mode = 'idle'
+                      AND "timestamp" > TIMESTAMP '2026-01-01 00:00:00'
+                    """.formatted(function[0]), false).get(0);
+            assertTrue(promql.contains(function[1] + "(node_cpu_seconds_total{mode=\"idle\"}[5m])"), promql);
+        }
+
+        String quantile = prometheusQueries("""
+                SELECT PROM_QUANTILE_OVER_TIME("value", '5m', 0.95)
+                FROM node_cpu_seconds_total
+                WHERE mode = 'idle'
+                  AND "timestamp" > TIMESTAMP '2026-01-01 00:00:00'
+                """, false).get(0);
+        assertTrue(quantile.contains("quantile_over_time(0.95, node_cpu_seconds_total{mode=\"idle\"}[5m])"), quantile);
+
+        String whenOverTime = prometheusQueries("""
+                SELECT PROM_AVG_OVER_TIME_WHEN("value" > 1, '5m')
+                FROM node_cpu_seconds_total
+                WHERE mode = 'idle'
+                  AND "timestamp" > TIMESTAMP '2026-01-01 00:00:00'
+                """, false).get(0);
+        assertTrue(whenOverTime.contains("avg_over_time((node_cpu_seconds_total{mode=\"idle\"} > 1)[5m:15s])"), whenOverTime);
+
+        String whenQuantile = prometheusQueries("""
+                SELECT PROM_QUANTILE_OVER_TIME_WHEN("value" > 1, '5m', 0.95)
+                FROM node_cpu_seconds_total
+                WHERE mode = 'idle'
+                  AND "timestamp" > TIMESTAMP '2026-01-01 00:00:00'
+                """, false).get(0);
+        assertTrue(whenQuantile.contains(
+                "quantile_over_time(0.95, (node_cpu_seconds_total{mode=\"idle\"} > 1)[5m:15s])"), whenQuantile);
+
+        String plain = prometheusQueries("""
+                SELECT PROM_RATE("value", '5m')
+                FROM node_cpu_seconds_total
+                WHERE mode = 'idle'
+                  AND "timestamp" > TIMESTAMP '2026-01-01 00:00:00'
+                  AND "timestamp" < TIMESTAMP '2028-01-01 00:00:00'
+                """, false).get(0);
+        String offsetOutside = prometheusQueries("""
+                SELECT PROM_OFFSET(PROM_SUM(PROM_RATE("value", '5m')), '1w')
+                FROM node_cpu_seconds_total
+                WHERE mode = 'idle'
+                  AND "timestamp" > TIMESTAMP '2026-01-01 00:00:00'
+                  AND "timestamp" < TIMESTAMP '2028-01-01 00:00:00'
+                """, false).get(0);
+        String offsetInside = prometheusQueries("""
+                SELECT PROM_SUM(PROM_OFFSET(PROM_RATE("value", '5m'), '1w'))
+                FROM node_cpu_seconds_total
+                WHERE mode = 'idle'
+                  AND "timestamp" > TIMESTAMP '2026-01-01 00:00:00'
+                  AND "timestamp" < TIMESTAMP '2028-01-01 00:00:00'
+                """, false).get(0);
+        assertTrue(offsetOutside.contains("sum(rate(node_cpu_seconds_total{mode=\"idle\"}[5m] offset 1w))"), offsetOutside);
+        assertTrue(offsetInside.contains("sum(rate(node_cpu_seconds_total{mode=\"idle\"}[5m] offset 1w))"), offsetInside);
+        assertEquals(queryParameter(plain, "start"), queryParameter(offsetOutside, "start"));
+        assertEquals(queryParameter(plain, "end"), queryParameter(offsetOutside, "end"));
+        assertEquals(queryParameter(plain, "start"), queryParameter(offsetInside, "start"));
+
+        List<String> week = prometheusQueries("""
+                SELECT recent.mode, recent."timestamp", recent.now_value, earlier.then_value
+                FROM (
+                    SELECT mode, "timestamp", PROM_RATE("value", '5m') AS now_value
+                    FROM node_cpu_seconds_total
+                    WHERE mode = 'idle'
+                      AND "timestamp" > TIMESTAMP '2026-01-01 00:00:00'
+                      AND "timestamp" < TIMESTAMP '2028-01-01 00:00:00'
+                ) recent
+                JOIN (
+                    SELECT mode, "timestamp", PROM_OFFSET(PROM_RATE("value", '5m'), '1w') AS then_value
+                    FROM node_cpu_seconds_total
+                    WHERE mode = 'idle'
+                      AND "timestamp" > TIMESTAMP '2026-01-01 00:00:00'
+                      AND "timestamp" < TIMESTAMP '2028-01-01 00:00:00'
+                ) earlier
+                  ON recent.mode = earlier.mode
+                 AND recent."timestamp" = earlier."timestamp"
+                """, false);
+        assertEquals(2, week.size(), week.toString());
+        String shifted = week.get(0).contains("offset 1w") ? week.get(0) : week.get(1);
+        String current = week.get(0).contains("offset 1w") ? week.get(1) : week.get(0);
+        assertTrue(current.contains("rate(node_cpu_seconds_total{mode=\"idle\"}[5m])"), current);
+        assertFalse(current.contains("offset "), current);
+        assertTrue(shifted.contains("rate(node_cpu_seconds_total{mode=\"idle\"}[5m] offset 1w)"), shifted);
+        assertEquals(queryParameter(current, "start"), queryParameter(shifted, "start"));
+        assertEquals(queryParameter(current, "end"), queryParameter(shifted, "end"));
+
+        String top = prometheusQueries("""
+                SELECT instance, PROM_TOPK(5, PROM_SUM(PROM_RATE("value", '5m')))
+                FROM node_cpu_seconds_total
+                WHERE "timestamp" > TIMESTAMP '2026-01-01 00:00:00'
+                """, false).get(0);
+        assertTrue(top.contains("topk(5, sum by (instance) (rate(node_cpu_seconds_total[5m])))"), top);
+
+        String bottom = prometheusQueries("""
+                SELECT PROM_BOTTOMK(3, PROM_SUM(PROM_RATE("value", '5m')))
+                FROM node_cpu_seconds_total
+                WHERE "timestamp" > TIMESTAMP '2026-01-01 00:00:00'
+                """, false).get(0);
+        assertTrue(bottom.contains("bottomk(3, sum(rate(node_cpu_seconds_total[5m])))"), bottom);
+
+        String replaced = prometheusQueries("""
+                SELECT instance, PROM_SUM(PROM_LABEL_REPLACE(
+                    PROM_RATE("value", '5m'), 'instance', '$1', 'instance', '(.*):.*'))
+                FROM node_cpu_seconds_total
+                WHERE "timestamp" > TIMESTAMP '2026-01-01 00:00:00'
+                """, false).get(0);
+        assertTrue(replaced.contains(
+                "sum by (instance) (label_replace(rate(node_cpu_seconds_total[5m]), \"instance\", \"$1\", \"instance\", \"(.*):.*\"))"),
+                replaced);
+
+        String subquery = prometheusQueries("""
+                SELECT PROM_MAX_OVER_TIME(PROM_RATE("value", '5m'), '1h')
+                FROM node_cpu_seconds_total
+                WHERE mode = 'idle'
+                  AND "timestamp" > TIMESTAMP '2026-01-01 00:00:00'
+                  AND "timestamp" < TIMESTAMP '2028-01-01 00:00:00'
+                """, false).get(0);
+        assertTrue(subquery.contains("max_over_time(rate(node_cpu_seconds_total{mode=\"idle\"}[5m])[1h:15s])"), subquery);
+        assertFalse(subquery.contains("[1h:]"), subquery);
+        assertEquals(queryParameter(plain, "start"), queryParameter(subquery, "start"));
+        assertEquals(queryParameter(plain, "end"), queryParameter(subquery, "end"));
+
+        String explicitStep = prometheusQueries("""
+                SELECT PROM_MAX_OVER_TIME(PROM_RATE("value", '5m'), '1h', '1m')
+                FROM node_cpu_seconds_total
+                WHERE "timestamp" > TIMESTAMP '2026-01-01 00:00:00'
+                """, false, "?step=30s").get(0);
+        assertTrue(explicitStep.contains("max_over_time(rate(node_cpu_seconds_total[5m])[1h:1m])"), explicitStep);
+
+        String connectionStep = prometheusQueries("""
+                SELECT PROM_AVG_OVER_TIME(PROM_DELTA("value", '5m'), '1h')
+                FROM node_cpu_seconds_total
+                WHERE "timestamp" > TIMESTAMP '2026-01-01 00:00:00'
+                """, false, "?step=30s").get(0);
+        assertTrue(connectionStep.contains("avg_over_time(delta(node_cpu_seconds_total[5m])[1h:30s])"), connectionStep);
+
+        IllegalStateException unknownLabel = assertThrows(IllegalStateException.class, () -> pushedPlan(logicalPlan("""
+                SELECT PROM_LABEL_REPLACE(PROM_RATE("value", '5m'), 'job', '$1', 'instance', '(.*)')
+                FROM node_cpu_seconds_total
+                """)));
+        assertTrue(unknownLabel.getMessage().contains("already belong to the metric"), unknownLabel.getMessage());
+
+        IllegalStateException nested = assertThrows(IllegalStateException.class, () -> pushedPlan(logicalPlan("""
+                SELECT PROM_MAX_OVER_TIME(PROM_AVG_OVER_TIME(PROM_RATE("value", '5m'), '1h'), '2h')
+                FROM node_cpu_seconds_total
+                """)));
+        assertTrue(nested.getMessage().contains("cannot wrap another subquery"), nested.getMessage());
+
+        IllegalStateException wideStep = assertThrows(IllegalStateException.class, () -> pushedPlan(logicalPlan("""
+                SELECT PROM_MAX_OVER_TIME(PROM_RATE("value", '5m'), '5m', '5m')
+                FROM node_cpu_seconds_total
+                WHERE "timestamp" > TIMESTAMP '2026-01-01 00:00:00'
+                """)));
+        assertTrue(wideStep.getMessage().contains("must be shorter than the subquery window"), wideStep.getMessage());
+
+        IllegalStateException rawStep = assertThrows(IllegalStateException.class, () -> pushedPlan(logicalPlan("""
+                SELECT PROM_AVG_OVER_TIME("value", '5m', '15s')
+                FROM node_cpu_seconds_total
+                """)));
+        assertTrue(rawStep.getMessage().contains("step is only used when"), rawStep.getMessage());
+
+        assertThrows(ValidationException.class, () -> logicalPlan("""
+                SELECT PROM_QUANTILE_OVER_TIME("value", '5m', 1.5)
+                FROM node_cpu_seconds_total
+                """));
+        assertThrows(ValidationException.class, () -> logicalPlan("""
+                SELECT PROM_TOPK(0, PROM_RATE("value", '5m'))
+                FROM node_cpu_seconds_total
+                """));
+
+        IllegalStateException filtered = assertThrows(IllegalStateException.class, () -> pushedPlan(logicalPlan("""
+                SELECT PROM_AVG_OVER_TIME("value", '5m')
+                FROM node_cpu_seconds_total
+                WHERE "value" > 1
+                  AND "timestamp" > TIMESTAMP '2026-01-01 00:00:00'
+                """)));
+        assertTrue(filtered.getMessage().contains("PROM_AVG_OVER_TIME_WHEN"), filtered.getMessage());
+        assertTrue(filtered.getMessage().contains("cannot share a scan"), filtered.getMessage());
+    }
+
+    private static String queryParameter(String query, String name) {
+        String marker = name + "=";
+        int start = query.indexOf(marker);
+        assertTrue(start >= 0, query);
+        int value = start + marker.length();
+        int end = query.indexOf('&', value);
+        return end < 0 ? query.substring(value) : query.substring(value, end);
+    }
+
     static String pushedPlan(RelNode before) {
         HepPlanner hepPlanner = new HepPlanner(PrometheusPrograms.hepProgram());
         hepPlanner.setRoot(before);

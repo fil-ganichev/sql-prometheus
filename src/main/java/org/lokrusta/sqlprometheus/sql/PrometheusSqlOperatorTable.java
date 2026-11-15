@@ -47,7 +47,17 @@ public final class PrometheusSqlOperatorTable extends ChainedSqlOperatorTable {
             Map.entry("PROM_RESET", "resets"),
             Map.entry("PROM_MAD", "mad_over_time"),
             Map.entry("PROM_PREDICT_LINEAR", "predict_linear"),
-            Map.entry("PROM_HOLT_WINTERS", "holt_winters"));
+            Map.entry("PROM_HOLT_WINTERS", "holt_winters"),
+            Map.entry("PROM_AVG_OVER_TIME", "avg_over_time"),
+            Map.entry("PROM_MIN_OVER_TIME", "min_over_time"),
+            Map.entry("PROM_MAX_OVER_TIME", "max_over_time"),
+            Map.entry("PROM_SUM_OVER_TIME", "sum_over_time"),
+            Map.entry("PROM_COUNT_OVER_TIME", "count_over_time"),
+            Map.entry("PROM_STDDEV_OVER_TIME", "stddev_over_time"),
+            Map.entry("PROM_STDVAR_OVER_TIME", "stdvar_over_time"),
+            Map.entry("PROM_LAST_OVER_TIME", "last_over_time"),
+            Map.entry("PROM_PRESENT_OVER_TIME", "present_over_time"),
+            Map.entry("PROM_QUANTILE_OVER_TIME", "quantile_over_time"));
     private static final Map<String, String> AGGREGATE = Map.of(
             "PROM_SUM", "sum",
             "PROM_AVG", "avg",
@@ -126,13 +136,18 @@ public final class PrometheusSqlOperatorTable extends ChainedSqlOperatorTable {
             functions.add(switch (name) {
                 case "PROM_PREDICT_LINEAR" -> predictLinear();
                 case "PROM_HOLT_WINTERS" -> holtWinters();
-                default -> windowFunction(name);
+                case "PROM_QUANTILE_OVER_TIME" -> quantileOverTime();
+                default -> name.endsWith("_OVER_TIME") ? overTime(name) : windowFunction(name);
             });
             functions.add(whenFunction(name));
         }
         for (String name : AGGREGATE.keySet().stream().sorted().toList()) {
             functions.add(aggregate(name));
         }
+        functions.add(offset());
+        functions.add(rank("PROM_TOPK"));
+        functions.add(rank("PROM_BOTTOMK"));
+        functions.add(labelReplace());
         return List.copyOf(functions);
     }
 
@@ -166,10 +181,61 @@ public final class PrometheusSqlOperatorTable extends ChainedSqlOperatorTable {
                 SqlFunctionCategory.USER_DEFINED_FUNCTION);
     }
 
+    private static SqlFunction overTime(String name) {
+        return new SqlFunction(
+                name,
+                SqlKind.OTHER_FUNCTION,
+                ReturnTypes.DOUBLE,
+                null,
+                OverTimeOperandChecker.INSTANCE,
+                SqlFunctionCategory.USER_DEFINED_FUNCTION);
+    }
+
+    private static SqlFunction quantileOverTime() {
+        return new SqlFunction(
+                "PROM_QUANTILE_OVER_TIME",
+                SqlKind.OTHER_FUNCTION,
+                ReturnTypes.DOUBLE,
+                null,
+                QuantileOverTimeOperandChecker.INSTANCE,
+                SqlFunctionCategory.USER_DEFINED_FUNCTION);
+    }
+
+    private static SqlFunction offset() {
+        return new SqlFunction(
+                "PROM_OFFSET",
+                SqlKind.OTHER_FUNCTION,
+                ReturnTypes.DOUBLE,
+                null,
+                OffsetOperandChecker.INSTANCE,
+                SqlFunctionCategory.USER_DEFINED_FUNCTION);
+    }
+
+    private static SqlFunction rank(String name) {
+        return new SqlFunction(
+                name,
+                SqlKind.OTHER_FUNCTION,
+                ReturnTypes.DOUBLE,
+                null,
+                RankOperandChecker.INSTANCE,
+                SqlFunctionCategory.USER_DEFINED_FUNCTION);
+    }
+
+    private static SqlFunction labelReplace() {
+        return new SqlFunction(
+                "PROM_LABEL_REPLACE",
+                SqlKind.OTHER_FUNCTION,
+                ReturnTypes.DOUBLE,
+                null,
+                LabelReplaceOperandChecker.INSTANCE,
+                SqlFunctionCategory.USER_DEFINED_FUNCTION);
+    }
+
     private static SqlFunction whenFunction(String name) {
         return switch (name) {
             case "PROM_PREDICT_LINEAR" -> whenCall("PROM_PREDICT_LINEAR_WHEN", 1, false);
             case "PROM_HOLT_WINTERS" -> whenCall("PROM_HOLT_WINTERS_WHEN", 2, true);
+            case "PROM_QUANTILE_OVER_TIME" -> whenCall("PROM_QUANTILE_OVER_TIME_WHEN", 1, true);
             default -> whenCall(name + "_WHEN", 0, false);
         };
     }
@@ -298,6 +364,136 @@ public final class PrometheusSqlOperatorTable extends ChainedSqlOperatorTable {
         }
     }
 
+    private static final class OverTimeOperandChecker implements SqlOperandTypeChecker {
+        private static final OverTimeOperandChecker INSTANCE = new OverTimeOperandChecker();
+
+        @Override
+        public boolean checkOperandTypes(SqlCallBinding callBinding, boolean throwOnFailure) {
+            int count = callBinding.getOperandCount();
+            boolean ok = (count == 2 || count == 3)
+                    && SqlTypeFamily.NUMERIC.contains(callBinding.getOperandType(0))
+                    && durationLiteral(callBinding, 1)
+                    && (count == 2 || durationLiteral(callBinding, 2));
+            if (!ok && throwOnFailure) {
+                throw callBinding.newValidationSignatureError();
+            }
+            return ok;
+        }
+
+        @Override
+        public SqlOperandCountRange getOperandCountRange() {
+            return SqlOperandCountRanges.between(2, 3);
+        }
+
+        @Override
+        public String getAllowedSignatures(SqlOperator op, String opName) {
+            return opName + "(<numeric>, <duration literal> [, <step>])";
+        }
+    }
+
+    private static final class QuantileOverTimeOperandChecker implements SqlOperandTypeChecker {
+        private static final QuantileOverTimeOperandChecker INSTANCE = new QuantileOverTimeOperandChecker();
+
+        @Override
+        public boolean checkOperandTypes(SqlCallBinding callBinding, boolean throwOnFailure) {
+            BigDecimal phi = callBinding.isOperandLiteral(2, false)
+                    ? callBinding.getOperandLiteralValue(2, BigDecimal.class) : null;
+            boolean ok = SqlTypeFamily.NUMERIC.contains(callBinding.getOperandType(0))
+                    && durationLiteral(callBinding, 1)
+                    && unitInterval(phi);
+            if (!ok && throwOnFailure) {
+                throw callBinding.newValidationSignatureError();
+            }
+            return ok;
+        }
+
+        @Override
+        public SqlOperandCountRange getOperandCountRange() {
+            return SqlOperandCountRanges.of(3);
+        }
+
+        @Override
+        public String getAllowedSignatures(SqlOperator op, String opName) {
+            return opName + "(<numeric>, <duration literal>, <phi>)";
+        }
+    }
+
+    private static final class OffsetOperandChecker implements SqlOperandTypeChecker {
+        private static final OffsetOperandChecker INSTANCE = new OffsetOperandChecker();
+
+        @Override
+        public boolean checkOperandTypes(SqlCallBinding callBinding, boolean throwOnFailure) {
+            boolean ok = SqlTypeFamily.NUMERIC.contains(callBinding.getOperandType(0))
+                    && durationLiteral(callBinding, 1);
+            if (!ok && throwOnFailure) {
+                throw callBinding.newValidationSignatureError();
+            }
+            return ok;
+        }
+
+        @Override
+        public SqlOperandCountRange getOperandCountRange() {
+            return SqlOperandCountRanges.of(2);
+        }
+
+        @Override
+        public String getAllowedSignatures(SqlOperator op, String opName) {
+            return opName + "(<numeric>, <duration literal>)";
+        }
+    }
+
+    private static final class RankOperandChecker implements SqlOperandTypeChecker {
+        private static final RankOperandChecker INSTANCE = new RankOperandChecker();
+
+        @Override
+        public boolean checkOperandTypes(SqlCallBinding callBinding, boolean throwOnFailure) {
+            BigDecimal k = callBinding.isOperandLiteral(0, false)
+                    ? callBinding.getOperandLiteralValue(0, BigDecimal.class) : null;
+            boolean ok = positiveInt(k) && SqlTypeFamily.NUMERIC.contains(callBinding.getOperandType(1));
+            if (!ok && throwOnFailure) {
+                throw callBinding.newValidationSignatureError();
+            }
+            return ok;
+        }
+
+        @Override
+        public SqlOperandCountRange getOperandCountRange() {
+            return SqlOperandCountRanges.of(2);
+        }
+
+        @Override
+        public String getAllowedSignatures(SqlOperator op, String opName) {
+            return opName + "(<positive integer>, <numeric>)";
+        }
+    }
+
+    private static final class LabelReplaceOperandChecker implements SqlOperandTypeChecker {
+        private static final LabelReplaceOperandChecker INSTANCE = new LabelReplaceOperandChecker();
+
+        @Override
+        public boolean checkOperandTypes(SqlCallBinding callBinding, boolean throwOnFailure) {
+            boolean ok = SqlTypeFamily.NUMERIC.contains(callBinding.getOperandType(0));
+            for (int i = 1; ok && i < 5; i++) {
+                ok = callBinding.isOperandLiteral(i, false)
+                        && SqlTypeFamily.CHARACTER.contains(callBinding.getOperandType(i));
+            }
+            if (!ok && throwOnFailure) {
+                throw callBinding.newValidationSignatureError();
+            }
+            return ok;
+        }
+
+        @Override
+        public SqlOperandCountRange getOperandCountRange() {
+            return SqlOperandCountRanges.of(5);
+        }
+
+        @Override
+        public String getAllowedSignatures(SqlOperator op, String opName) {
+            return opName + "(<numeric>, <destination>, <replacement>, <source>, <regex>)";
+        }
+    }
+
     private static final class WhenOperandChecker implements SqlOperandTypeChecker {
         private final int extras;
         private final boolean unitFactors;
@@ -375,5 +571,12 @@ public final class PrometheusSqlOperatorTable extends ChainedSqlOperatorTable {
         return value != null
                 && value.compareTo(BigDecimal.ZERO) >= 0
                 && value.compareTo(BigDecimal.ONE) <= 0;
+    }
+
+    private static boolean positiveInt(BigDecimal value) {
+        if (value == null || value.signum() <= 0 || value.compareTo(BigDecimal.valueOf(Integer.MAX_VALUE)) > 0) {
+            return false;
+        }
+        return value.stripTrailingZeros().scale() <= 0;
     }
 }

@@ -44,10 +44,12 @@ public class PrometheusRowIterator implements Iterator<Object[]> {
                                              String scalars,
                                              String innerScalars,
                                              String agg,
-                                             String aggBy) {
+                                             String aggBy,
+                                             String callShape) {
         String json = PrometheusClient.queryRange(
                 baseUrl, metric, labelFilters, startMillis, endMillis, step, connectTimeoutSeconds, queryTimeoutSeconds,
-                promFunction, promWindow, promArgs, rateWindow, quantilePhi, quantileBy, scalars, innerScalars, agg, aggBy);
+                promFunction, promWindow, promArgs, rateWindow, quantilePhi, quantileBy, scalars, innerScalars, agg, aggBy,
+                callShape);
         boolean latestSample = quantilePhi != null && !quantilePhi.isEmpty();
         return fromJson(json, labelColumns, labelFilters, startMillis, endMillis, maxRows, latestSample);
     }

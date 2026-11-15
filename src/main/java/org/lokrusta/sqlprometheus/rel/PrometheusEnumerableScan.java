@@ -13,6 +13,7 @@ import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelNode;
+import org.lokrusta.sqlprometheus.exec.PrometheusCallShape;
 import org.lokrusta.sqlprometheus.schema.PrometheusTable;
 
 import java.lang.reflect.Method;
@@ -36,9 +37,10 @@ public class PrometheusEnumerableScan extends PrometheusTableScan implements Enu
                                     String agg,
                                     List<String> aggBy,
                                     List<String> innerScalars,
-                                    List<String> scalars) {
+                                    List<String> scalars,
+                                    PrometheusCallShape shape) {
         super(cluster, traitSet, table, prometheusTable, labelFilters, startMillis, endMillis,
-                promFunction, promWindow, promArgs, rateWindow, quantilePhi, quantileBy, agg, aggBy, innerScalars, scalars);
+                promFunction, promWindow, promArgs, rateWindow, quantilePhi, quantileBy, agg, aggBy, innerScalars, scalars, shape);
     }
 
     public static PrometheusEnumerableScan create(PrometheusTableScan logical) {
@@ -59,7 +61,8 @@ public class PrometheusEnumerableScan extends PrometheusTableScan implements Enu
                 logical.getAgg(),
                 logical.getAggBy(),
                 logical.getInnerScalars(),
-                logical.getScalars());
+                logical.getScalars(),
+                logical.getShape());
     }
 
     @Override
@@ -81,7 +84,8 @@ public class PrometheusEnumerableScan extends PrometheusTableScan implements Enu
                 getAgg(),
                 getAggBy(),
                 getInnerScalars(),
-                getScalars());
+                getScalars(),
+                getShape());
     }
 
     @Override
@@ -103,6 +107,7 @@ public class PrometheusEnumerableScan extends PrometheusTableScan implements Enu
                 String.class,
                 int.class,
                 int.class,
+                String.class,
                 String.class,
                 String.class,
                 String.class,
@@ -134,7 +139,8 @@ public class PrometheusEnumerableScan extends PrometheusTableScan implements Enu
                 Expressions.constant(scalarSpec(), String.class),
                 Expressions.constant(innerScalarSpec(), String.class),
                 Expressions.constant(getAgg(), String.class),
-                Expressions.constant(aggBySpec(), String.class))));
+                Expressions.constant(aggBySpec(), String.class),
+                Expressions.constant(shapeSpec(), String.class))));
     }
 
     private static org.apache.calcite.linq4j.tree.Expression constantLong(Long value) {

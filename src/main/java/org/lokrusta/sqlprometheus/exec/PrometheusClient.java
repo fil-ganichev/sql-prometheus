@@ -48,8 +48,9 @@ public final class PrometheusClient {
                                     String scalars,
                                     String innerScalars,
                                     String agg,
-                                    String aggBy) {
-        String query = selector(metric, labelFilters, promFunction, promWindow, promArgs, rateWindow, quantilePhi, quantileBy, scalars, innerScalars, agg, aggBy);
+                                    String aggBy,
+                                    String callShape) {
+        String query = selector(metric, labelFilters, promFunction, promWindow, promArgs, rateWindow, quantilePhi, quantileBy, scalars, innerScalars, agg, aggBy, callShape);
         String url = stripSlash(baseUrl) + "/api/v1/query_range?query=" + encode(query)
                 + "&start=" + seconds(startMillis)
                 + "&end=" + seconds(endMillis)
@@ -130,7 +131,10 @@ public final class PrometheusClient {
                                    String scalars,
                                    String innerScalars,
                                    String agg,
-                                   String aggBy) {
+                                   String aggBy,
+                                   String callShape) {
+        PrometheusCallShape shape = PrometheusCallShape.parse(callShape);
+        String offset = shape.offset() == null || shape.offset().isEmpty() ? "" : " offset " + shape.offset();
         String series = metric;
         if (labelFilters != null && !labelFilters.isEmpty()) {
             String labels = labelFilters.entrySet().stream()
@@ -144,34 +148,81 @@ public final class PrometheusClient {
                 throw new IllegalStateException("histogram_quantile requires a range window");
             }
             String by = quantileBy == null || quantileBy.isEmpty() ? "le" : quantileBy;
-            core = "histogram_quantile(" + quantilePhi + ", sum by (" + by + ") (rate(" + series + "[" + rateWindow + "])))";
+            core = "histogram_quantile(" + quantilePhi + ", sum by (" + by + ") (rate(" + series + "[" + rateWindow + "]" + offset + ")))";
         } else if (promFunction != null && !promFunction.isEmpty()) {
             Matcher when = promArgs == null ? null : WHEN_ARGS.matcher(promArgs);
             if (when != null && when.matches()) {
-                core = promFunction + "((" + series + " " + when.group(1) + " " + when.group(2) + ")[" + promWindow + "]";
-                if (when.group(3) != null) {
-                    core += ", " + when.group(3);
+                String range = "(" + series + " " + when.group(1) + " " + when.group(2) + ")[" + promWindow + "]" + offset;
+                if ("quantile_over_time".equals(promFunction)) {
+                    if (when.group(3) == null || when.group(3).isEmpty()) {
+                        throw new IllegalStateException("quantile_over_time requires a phi between 0 and 1");
+                    }
+                    core = promFunction + "(" + when.group(3) + ", " + range + ")";
+                } else {
+                    core = promFunction + "(" + range;
+                    if (when.group(3) != null) {
+                        core += ", " + when.group(3);
+                    }
+                    core += ")";
                 }
-                core += ")";
+            } else if ("quantile_over_time".equals(promFunction)) {
+                if (promArgs == null || promArgs.isEmpty()) {
+                    throw new IllegalStateException("quantile_over_time requires a phi between 0 and 1");
+                }
+                core = promFunction + "(" + promArgs + ", " + series + "[" + promWindow + "]" + offset + ")";
             } else {
-                core = promFunction + "(" + series + "[" + promWindow + "]";
+                core = promFunction + "(" + series + "[" + promWindow + "]" + offset;
                 if (promArgs != null && !promArgs.isEmpty()) {
                     core += ", " + promArgs;
                 }
                 core += ")";
             }
         } else {
-            core = series;
+            core = series + offset;
+        }
+        if (shape.outerFunction() != null && !shape.outerFunction().isEmpty()) {
+            core = shape.outerFunction() + "(" + core + "[" + shape.outerWindow() + "])";
+        }
+        if (shape.pipe() != null && !shape.pipe().isEmpty()) {
+            String[] tokens = shape.pipe().split(",");
+            for (int i = tokens.length - 1; i >= 0; i--) {
+                core = applyToken(core, tokens[i], shape, agg, aggBy);
+            }
+            return core;
         }
         core = applyScalars(core, innerScalars);
-        if (agg != null && !agg.isEmpty()) {
-            if (aggBy == null || aggBy.isEmpty()) {
-                core = agg + "(" + core + ")";
-            } else {
-                core = agg + " by (" + aggBy + ") (" + core + ")";
-            }
-        }
+        core = applyAggregate(core, agg, aggBy);
         return applyScalars(core, scalars);
+    }
+
+    private static String applyToken(String core, String token, PrometheusCallShape shape, String agg, String aggBy) {
+        if ("k".equals(token)) {
+            return shape.rank() + "(" + shape.rankCount() + ", " + core + ")";
+        }
+        if ("l".equals(token)) {
+            return "label_replace(" + core
+                    + ", \"" + escape(shape.labelDst()) + "\""
+                    + ", \"" + escape(shape.labelRepl()) + "\""
+                    + ", \"" + escape(shape.labelSrc()) + "\""
+                    + ", \"" + escape(shape.labelRegex()) + "\")";
+        }
+        if ("a".equals(token)) {
+            return applyAggregate(core, agg, aggBy);
+        }
+        if (token.startsWith("s:")) {
+            return token.substring(2) + "(" + core + ")";
+        }
+        throw new IllegalStateException("Prometheus call shape is invalid");
+    }
+
+    private static String applyAggregate(String core, String agg, String aggBy) {
+        if (agg == null || agg.isEmpty()) {
+            return core;
+        }
+        if (aggBy == null || aggBy.isEmpty()) {
+            return agg + "(" + core + ")";
+        }
+        return agg + " by (" + aggBy + ") (" + core + ")";
     }
 
     private static String applyScalars(String core, String scalars) {

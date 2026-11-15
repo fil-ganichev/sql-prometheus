@@ -106,7 +106,7 @@ public class PrometheusTable extends AbstractTable implements ScannableTable, Tr
     public Enumerable<Object[]> scan(DataContext root) {
         return query(baseUrl, metric, String.join(",", labelColumns), "", null, null,
                 options.maxRows(), options.step(), options.connectTimeoutSeconds(), options.queryTimeoutSeconds(),
-                null, null, null, null, null, null, null, null, null, null);
+                null, null, null, null, null, null, null, null, null, null, null);
     }
 
     @Override
@@ -133,7 +133,8 @@ public class PrometheusTable extends AbstractTable implements ScannableTable, Tr
                                              String scalars,
                                              String innerScalars,
                                              String agg,
-                                             String aggBy) {
+                                             String aggBy,
+                                             String callShape) {
         long end = endMillis != null ? endMillis : System.currentTimeMillis();
         long start = startMillis != null ? startMillis : end - DEFAULT_RANGE_MILLIS;
         List<String> columns = labelColumns == null || labelColumns.isEmpty()
@@ -146,7 +147,8 @@ public class PrometheusTable extends AbstractTable implements ScannableTable, Tr
                 PrometheusRowIterator rows = PrometheusRowIterator.query(
                         baseUrl, metric, columns, labelFilters, start, end, maxRows,
                         step, connectTimeoutSeconds, queryTimeoutSeconds,
-                        promFunction, promWindow, promArgs, rateWindow, quantilePhi, quantileBy, scalars, innerScalars, agg, aggBy);
+                        promFunction, promWindow, promArgs, rateWindow, quantilePhi, quantileBy, scalars, innerScalars, agg, aggBy,
+                        callShape);
                 return new Enumerator<>() {
                     private Object[] current;
 

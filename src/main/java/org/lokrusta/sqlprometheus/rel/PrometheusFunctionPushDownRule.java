@@ -16,6 +16,7 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexShuttle;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.type.SqlTypeFamily;
+import org.lokrusta.sqlprometheus.exec.PrometheusCallShape;
 import org.lokrusta.sqlprometheus.sql.PrometheusSqlOperatorTable;
 
 import java.math.BigDecimal;
@@ -71,7 +72,8 @@ public class PrometheusFunctionPushDownRule extends RelRule<RelRule.Config> {
                     assignment.agg,
                     by,
                     assignment.innerScalars,
-                    assignment.scalars));
+                    assignment.scalars,
+                    assignment.shape));
         });
         call.transformTo(project.copy(
                 project.getTraitSet(),
@@ -194,19 +196,22 @@ public class PrometheusFunctionPushDownRule extends RelRule<RelRule.Config> {
         private final String agg;
         private final List<String> innerScalars;
         private final List<String> scalars;
+        private final PrometheusCallShape shape;
 
         private Assignment(String function,
                            String window,
                            List<String> args,
                            String agg,
                            List<String> innerScalars,
-                           List<String> scalars) {
+                           List<String> scalars,
+                           PrometheusCallShape shape) {
             this.function = function;
             this.window = window;
             this.args = args;
             this.agg = agg;
             this.innerScalars = innerScalars;
             this.scalars = scalars;
+            this.shape = shape == null ? PrometheusCallShape.EMPTY : shape;
         }
 
         private boolean matches(Assignment other) {
@@ -215,7 +220,8 @@ public class PrometheusFunctionPushDownRule extends RelRule<RelRule.Config> {
                     && args.equals(other.args)
                     && Objects.equals(agg, other.agg)
                     && innerScalars.equals(other.innerScalars)
-                    && scalars.equals(other.scalars);
+                    && scalars.equals(other.scalars)
+                    && shape.equals(other.shape);
         }
     }
 
@@ -238,6 +244,7 @@ public class PrometheusFunctionPushDownRule extends RelRule<RelRule.Config> {
             Target target = resolve(input, parsed.value.getIndex());
             boolean pushedFunction = parsed.function != null;
             boolean pushedAggregate = parsed.agg != null;
+            boolean pushedShape = parsed.shaped();
             if (parsed.whenCompare != null && (target == null || target.column != 1)) {
                 throw new IllegalStateException(
                         parsed.sqlName + " compares the value column with a numeric literal");
@@ -248,14 +255,22 @@ public class PrometheusFunctionPushDownRule extends RelRule<RelRule.Config> {
                     || (pushedFunction && target.scan.getPromFunction() != null)
                     || (pushedFunction && target.scan.getQuantilePhi() != null)
                     || (pushedAggregate && target.scan.getAgg() != null)
-                    || (pushedAggregate && target.scan.getQuantilePhi() != null)) {
-                if (pushedFunction || pushedAggregate) {
+                    || (pushedAggregate && target.scan.getQuantilePhi() != null)
+                    || (pushedShape && !target.scan.getShape().isEmpty())) {
+                if (pushedFunction || pushedAggregate || pushedShape) {
                     conflict = true;
                 }
                 return super.visitCall(call);
             }
             if (pushedFunction && parsed.sqlName != null) {
                 rejectValuePredicate(input, target.scan, parsed.sqlName);
+            }
+            if (parsed.labelDst != null) {
+                List<String> labels = target.scan.getPrometheusTable().labelColumns();
+                if (!labels.contains(parsed.labelDst) || !labels.contains(parsed.labelSrc)) {
+                    throw new IllegalStateException(
+                            "PROM_LABEL_REPLACE destination and source must be labels that already belong to the metric");
+                }
             }
             String window = parsed.window;
             List<String> args = parsed.args;
@@ -274,8 +289,32 @@ public class PrometheusFunctionPushDownRule extends RelRule<RelRule.Config> {
                         ? parsed.whenCompare
                         : parsed.whenCompare + ";" + parsed.whenExtra);
             }
+            String outerWindow = parsed.outerWindow;
+            if (parsed.outerFunction != null) {
+                String step = parsed.outerStep != null
+                        ? parsed.outerStep
+                        : target.scan.getPrometheusTable().options().step();
+                long stepMillis = PrometheusSqlOperatorTable.durationMillis(step);
+                long windowMillis = PrometheusSqlOperatorTable.durationMillis(parsed.outerWindow);
+                if (stepMillis < 0 || windowMillis < 0 || stepMillis >= windowMillis) {
+                    throw new IllegalStateException(parsed.outerSqlName + " step " + step
+                            + " must be shorter than the subquery window " + parsed.outerWindow);
+                }
+                outerWindow = parsed.outerWindow + ":" + step;
+            }
+            PrometheusCallShape shape = new PrometheusCallShape(
+                    parsed.offset,
+                    parsed.rank,
+                    parsed.rankCount,
+                    parsed.outerFunction,
+                    outerWindow,
+                    parsed.labelDst,
+                    parsed.labelRepl,
+                    parsed.labelSrc,
+                    parsed.labelRegex,
+                    parsed.pipe);
             Assignment assignment = new Assignment(
-                    parsed.function, window, args, parsed.agg, parsed.innerScalars, parsed.scalars);
+                    parsed.function, window, args, parsed.agg, parsed.innerScalars, parsed.scalars, shape);
             Assignment existing = assignments.get(target.scan);
             if (existing == null) {
                 assignments.put(target.scan, assignment);
@@ -288,8 +327,10 @@ public class PrometheusFunctionPushDownRule extends RelRule<RelRule.Config> {
     }
 
     private static Parsed parse(RexCall call) {
+        List<String> pipe = new ArrayList<>();
+        Modifiers modifiers = new Modifiers();
         List<String> scalars = new ArrayList<>();
-        RexNode cursor = peelScalars(call, scalars);
+        RexNode cursor = peelModifiers(call, scalars, pipe, modifiers);
         String agg = null;
         if (cursor instanceof RexCall current) {
             agg = PrometheusSqlOperatorTable.promqlAggregate(current.getOperator().getName());
@@ -297,6 +338,7 @@ public class PrometheusFunctionPushDownRule extends RelRule<RelRule.Config> {
                 if (current.getOperands().size() != 1) {
                     return null;
                 }
+                pipe.add("a");
                 cursor = unwrapCast(current.getOperands().get(0));
                 if (cursor instanceof RexCall nested
                         && PrometheusSqlOperatorTable.promqlAggregate(nested.getOperator().getName()) != null) {
@@ -306,7 +348,14 @@ public class PrometheusFunctionPushDownRule extends RelRule<RelRule.Config> {
         }
         List<String> innerScalars = new ArrayList<>();
         if (agg != null) {
-            cursor = peelScalars(cursor, innerScalars);
+            cursor = peelModifiers(cursor, innerScalars, pipe, modifiers);
+        }
+        if (cursor instanceof RexCall current) {
+            RexCall inner = subqueryInner(current, modifiers);
+            if (inner != null) {
+                readSubqueryBounds(current, modifiers);
+                cursor = inner;
+            }
         }
         String function = null;
         String window = null;
@@ -331,7 +380,10 @@ public class PrometheusFunctionPushDownRule extends RelRule<RelRule.Config> {
                 function = PrometheusSqlOperatorTable.promqlName(operator);
                 if (function != null) {
                     sqlName = operator.toUpperCase(Locale.ROOT);
-                    value = current.getOperands().isEmpty() ? null : valueRef(current.getOperands().get(0));
+                    RexNode sample = current.getOperands().isEmpty()
+                            ? null
+                            : peelOffsetOnly(unwrapCast(current.getOperands().get(0)), modifiers);
+                    value = sample == null ? null : valueRef(sample);
                     window = current.getOperands().size() >= 2 ? windowOf(current.getOperands().get(1)) : null;
                     args = arguments(current);
                     if ("predict_linear".equals(function) && window != null && args.size() != 1) {
@@ -340,18 +392,188 @@ public class PrometheusFunctionPushDownRule extends RelRule<RelRule.Config> {
                     if ("holt_winters".equals(function) && window != null && !holtFactors(args)) {
                         throw new IllegalStateException("PROM_HOLT_WINTERS factors must be numeric literals between 0 and 1");
                     }
+                    if ("quantile_over_time".equals(function) && (args.size() != 1 || !unitInterval(args.get(0)))) {
+                        throw new IllegalStateException(
+                                "PROM_QUANTILE_OVER_TIME phi must be a numeric literal between 0 and 1");
+                    }
+                    if (function.endsWith("_over_time")
+                            && !"quantile_over_time".equals(function)
+                            && modifiers.outerFunction == null
+                            && current.getOperands().size() >= 3
+                            && !omitted(current.getOperands().get(2))) {
+                        throw new IllegalStateException(sqlName
+                                + " step is only used when the first argument is a Prometheus window function");
+                    }
                 }
             }
         } else if (cursor instanceof RexInputRef ref) {
             value = ref;
         }
-        if (value == null || (function == null && agg == null && scalars.isEmpty() && innerScalars.isEmpty())) {
+        if (function != null && function.endsWith("_over_time") && value == null) {
+            throw new IllegalStateException(sqlName
+                    + " reads the value column, or wraps one Prometheus window function");
+        }
+        if (value == null || (function == null && agg == null && scalars.isEmpty() && innerScalars.isEmpty() && !modifiers.shaped())) {
             return null;
         }
         Collections.reverse(scalars);
         Collections.reverse(innerScalars);
+        String pipeSpec = modifiers.rank != null || modifiers.labelDst != null ? String.join(",", pipe) : null;
         return new Parsed(value, function, window, args, agg, List.copyOf(innerScalars), List.copyOf(scalars),
-                sqlName, whenCompare, whenStep, whenExtra);
+                sqlName, whenCompare, whenStep, whenExtra,
+                modifiers.offset, modifiers.rank, modifiers.rankCount,
+                modifiers.outerFunction, modifiers.outerWindow, modifiers.outerStep, modifiers.outerSqlName,
+                modifiers.labelDst, modifiers.labelRepl, modifiers.labelSrc, modifiers.labelRegex, pipeSpec);
+    }
+
+    private static RexNode peelModifiers(RexNode cursor, List<String> scalars, List<String> pipe, Modifiers modifiers) {
+        while (cursor instanceof RexCall current) {
+            String operator = current.getOperator().getName().toUpperCase(Locale.ROOT);
+            if ("PROM_OFFSET".equals(operator)) {
+                cursor = peelOffsetOnly(current, modifiers);
+                continue;
+            }
+            if ("PROM_TOPK".equals(operator) || "PROM_BOTTOMK".equals(operator)) {
+                if (modifiers.rank != null) {
+                    throw new IllegalStateException("PROM_TOPK and PROM_BOTTOMK cannot be nested");
+                }
+                if (current.getOperands().size() != 2) {
+                    throw new IllegalStateException(operator + " count must be a positive integer");
+                }
+                String count = positiveInt(current.getOperands().get(0));
+                if (count == null) {
+                    throw new IllegalStateException(operator + " count must be a positive integer");
+                }
+                modifiers.rank = "PROM_TOPK".equals(operator) ? "topk" : "bottomk";
+                modifiers.rankCount = count;
+                pipe.add("k");
+                cursor = unwrapCast(current.getOperands().get(1));
+                continue;
+            }
+            if ("PROM_LABEL_REPLACE".equals(operator)) {
+                if (modifiers.labelDst != null) {
+                    throw new IllegalStateException("PROM_LABEL_REPLACE cannot be nested");
+                }
+                String[] label = labelArgs(current);
+                modifiers.labelDst = label[0];
+                modifiers.labelRepl = label[1];
+                modifiers.labelSrc = label[2];
+                modifiers.labelRegex = label[3];
+                pipe.add("l");
+                cursor = unwrapCast(current.getOperands().get(0));
+                continue;
+            }
+            String scalar = scalarName(current);
+            if (scalar == null) {
+                break;
+            }
+            scalars.add(scalar);
+            pipe.add("s:" + scalar);
+            cursor = unwrapCast(current.getOperands().get(0));
+        }
+        return cursor;
+    }
+
+    private static RexNode peelOffsetOnly(RexNode node, Modifiers modifiers) {
+        node = unwrapCast(node);
+        if (!(node instanceof RexCall call) || !"PROM_OFFSET".equals(call.getOperator().getName().toUpperCase(Locale.ROOT))) {
+            return node;
+        }
+        if (modifiers.offset != null) {
+            throw new IllegalStateException("PROM_OFFSET is already set");
+        }
+        if (call.getOperands().size() != 2) {
+            throw new IllegalStateException("PROM_OFFSET shift must be a duration literal, for example '1w'");
+        }
+        String shift = windowOf(call.getOperands().get(1));
+        if (shift == null) {
+            throw new IllegalStateException("PROM_OFFSET shift must be a duration literal, for example '1w'");
+        }
+        modifiers.offset = shift;
+        return unwrapCast(call.getOperands().get(0));
+    }
+
+    private static RexCall subqueryInner(RexCall call, Modifiers modifiers) {
+        String sqlName = call.getOperator().getName().toUpperCase(Locale.ROOT);
+        if (!sqlName.endsWith("_OVER_TIME") || "PROM_QUANTILE_OVER_TIME".equals(sqlName) || sqlName.endsWith("_WHEN")) {
+            return null;
+        }
+        if (call.getOperands().isEmpty()) {
+            return null;
+        }
+        Modifiers trial = new Modifiers();
+        RexNode first = peelOffsetOnly(unwrapCast(call.getOperands().get(0)), trial);
+        if (!(first instanceof RexCall inner) || !isRangeCall(inner)) {
+            return null;
+        }
+        if (subqueryInner(inner, new Modifiers()) != null) {
+            throw new IllegalStateException("Prometheus subquery cannot wrap another subquery");
+        }
+        if (trial.offset != null) {
+            if (modifiers.offset != null) {
+                throw new IllegalStateException("PROM_OFFSET is already set");
+            }
+            modifiers.offset = trial.offset;
+        }
+        return inner;
+    }
+
+    private static boolean isRangeCall(RexCall call) {
+        String name = call.getOperator().getName();
+        if (name == null) {
+            return false;
+        }
+        String upper = name.toUpperCase(Locale.ROOT);
+        if (upper.endsWith("_WHEN")) {
+            return PrometheusSqlOperatorTable.promqlName(upper.substring(0, upper.length() - "_WHEN".length())) != null;
+        }
+        return PrometheusSqlOperatorTable.promqlName(upper) != null;
+    }
+
+    private static void readSubqueryBounds(RexCall call, Modifiers modifiers) {
+        String sqlName = call.getOperator().getName().toUpperCase(Locale.ROOT);
+        String promql = PrometheusSqlOperatorTable.promqlName(sqlName);
+        if (promql == null) {
+            throw new IllegalStateException(sqlName + " window must be a duration literal, for example '1h'");
+        }
+        String window = call.getOperands().size() > 1 ? windowOf(call.getOperands().get(1)) : null;
+        if (window == null) {
+            throw new IllegalStateException(sqlName + " window must be a duration literal, for example '1h'");
+        }
+        int size = call.getOperands().size();
+        if (size == 3 && omitted(call.getOperands().get(2))) {
+            size = 2;
+        }
+        if (size > 3) {
+            throw new IllegalStateException(sqlName + " step must be a duration literal, for example '1m'");
+        }
+        String step = null;
+        if (size == 3) {
+            step = windowOf(call.getOperands().get(2));
+            if (step == null) {
+                throw new IllegalStateException(sqlName + " step must be a duration literal, for example '1m'");
+            }
+        }
+        modifiers.outerFunction = promql;
+        modifiers.outerWindow = window;
+        modifiers.outerStep = step;
+        modifiers.outerSqlName = sqlName;
+    }
+
+    private static String[] labelArgs(RexCall call) {
+        if (call.getOperands().size() != 5) {
+            throw new IllegalStateException(
+                    "PROM_LABEL_REPLACE destination, replacement, source and regex must be string literals");
+        }
+        String destination = textOf(call.getOperands().get(1));
+        String replacement = textOf(call.getOperands().get(2));
+        String source = textOf(call.getOperands().get(3));
+        String regex = textOf(call.getOperands().get(4));
+        if (destination == null || destination.isEmpty() || replacement == null || source == null || source.isEmpty() || regex == null) {
+            throw new IllegalStateException(
+                    "PROM_LABEL_REPLACE destination, replacement, source and regex must be string literals");
+        }
+        return new String[]{destination, replacement, source, regex};
     }
 
     private static WhenCall parseWhen(RexCall call) {
@@ -369,7 +591,7 @@ public class PrometheusFunctionPushDownRule extends RelRule<RelRule.Config> {
             throw new IllegalStateException(sqlName + " window must be a duration literal, for example '5m'");
         }
         int extras = switch (sqlName) {
-            case "PROM_PREDICT_LINEAR_WHEN" -> 1;
+            case "PROM_PREDICT_LINEAR_WHEN", "PROM_QUANTILE_OVER_TIME_WHEN" -> 1;
             case "PROM_HOLT_WINTERS_WHEN" -> 2;
             default -> 0;
         };
@@ -390,6 +612,9 @@ public class PrometheusFunctionPushDownRule extends RelRule<RelRule.Config> {
         }
         if ("PROM_HOLT_WINTERS_WHEN".equals(sqlName) && !holtFactors(extraArgs)) {
             throw new IllegalStateException("PROM_HOLT_WINTERS factors must be numeric literals between 0 and 1");
+        }
+        if ("PROM_QUANTILE_OVER_TIME_WHEN".equals(sqlName) && (extraArgs.size() != 1 || !unitInterval(extraArgs.get(0)))) {
+            throw new IllegalStateException("PROM_QUANTILE_OVER_TIME phi must be a numeric literal between 0 and 1");
         }
         String step = null;
         if (size == 3 + extras) {
@@ -489,18 +714,6 @@ public class PrometheusFunctionPushDownRule extends RelRule<RelRule.Config> {
                 + "  SELECT rate_value FROM (SELECT " + name + "(\"value\", '5m') AS rate_value FROM metric) t WHERE rate_value > 1\n"
                 + "To drop raw samples before the function, use " + name + "_WHEN(\"value\" > 1, '5m').\n"
                 + "The connection step becomes the subquery resolution unless the call sets its own.";
-    }
-
-    private static RexNode peelScalars(RexNode cursor, List<String> scalars) {
-        while (cursor instanceof RexCall current) {
-            String scalar = scalarName(current);
-            if (scalar == null) {
-                break;
-            }
-            scalars.add(scalar);
-            cursor = unwrapCast(current.getOperands().get(0));
-        }
-        return cursor;
     }
 
     private static List<String> arguments(RexCall call) {
@@ -610,6 +823,18 @@ public class PrometheusFunctionPushDownRule extends RelRule<RelRule.Config> {
         private final String whenCompare;
         private final String whenStep;
         private final String whenExtra;
+        private final String offset;
+        private final String rank;
+        private final String rankCount;
+        private final String outerFunction;
+        private final String outerWindow;
+        private final String outerStep;
+        private final String outerSqlName;
+        private final String labelDst;
+        private final String labelRepl;
+        private final String labelSrc;
+        private final String labelRegex;
+        private final String pipe;
 
         private Parsed(RexInputRef value,
                        String function,
@@ -621,7 +846,19 @@ public class PrometheusFunctionPushDownRule extends RelRule<RelRule.Config> {
                        String sqlName,
                        String whenCompare,
                        String whenStep,
-                       String whenExtra) {
+                       String whenExtra,
+                       String offset,
+                       String rank,
+                       String rankCount,
+                       String outerFunction,
+                       String outerWindow,
+                       String outerStep,
+                       String outerSqlName,
+                       String labelDst,
+                       String labelRepl,
+                       String labelSrc,
+                       String labelRegex,
+                       String pipe) {
             this.value = value;
             this.function = function;
             this.window = window;
@@ -633,6 +870,40 @@ public class PrometheusFunctionPushDownRule extends RelRule<RelRule.Config> {
             this.whenCompare = whenCompare;
             this.whenStep = whenStep;
             this.whenExtra = whenExtra;
+            this.offset = offset;
+            this.rank = rank;
+            this.rankCount = rankCount;
+            this.outerFunction = outerFunction;
+            this.outerWindow = outerWindow;
+            this.outerStep = outerStep;
+            this.outerSqlName = outerSqlName;
+            this.labelDst = labelDst;
+            this.labelRepl = labelRepl;
+            this.labelSrc = labelSrc;
+            this.labelRegex = labelRegex;
+            this.pipe = pipe;
+        }
+
+        private boolean shaped() {
+            return offset != null || rank != null || outerFunction != null || labelDst != null;
+        }
+    }
+
+    private static final class Modifiers {
+        private String offset;
+        private String rank;
+        private String rankCount;
+        private String outerFunction;
+        private String outerWindow;
+        private String outerStep;
+        private String outerSqlName;
+        private String labelDst;
+        private String labelRepl;
+        private String labelSrc;
+        private String labelRegex;
+
+        private boolean shaped() {
+            return offset != null || rank != null || outerFunction != null || labelDst != null;
         }
     }
 
@@ -682,6 +953,32 @@ public class PrometheusFunctionPushDownRule extends RelRule<RelRule.Config> {
     private static RexInputRef valueRef(RexNode node) {
         node = unwrapCast(node);
         return node instanceof RexInputRef ref ? ref : null;
+    }
+
+    private static String positiveInt(RexNode node) {
+        String number = numberOf(node);
+        if (number == null) {
+            return null;
+        }
+        try {
+            BigDecimal value = new BigDecimal(number);
+            if (value.signum() <= 0
+                    || value.compareTo(BigDecimal.valueOf(Integer.MAX_VALUE)) > 0
+                    || value.stripTrailingZeros().scale() > 0) {
+                return null;
+            }
+            return value.toBigInteger().toString();
+        } catch (NumberFormatException e) {
+            return null;
+        }
+    }
+
+    private static String textOf(RexNode node) {
+        node = unwrapCast(node);
+        if (!(node instanceof RexLiteral literal) || literal.getTypeName().getFamily() != SqlTypeFamily.CHARACTER) {
+            return null;
+        }
+        return RexLiteral.stringValue(literal);
     }
 
     private static String numberOf(RexNode node) {

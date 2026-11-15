@@ -7,6 +7,7 @@ import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelWriter;
 import org.apache.calcite.rel.core.TableScan;
+import org.lokrusta.sqlprometheus.exec.PrometheusCallShape;
 import org.lokrusta.sqlprometheus.schema.PrometheusTable;
 
 import com.google.common.collect.ImmutableList;
@@ -31,6 +32,7 @@ public class PrometheusTableScan extends TableScan {
     private final List<String> aggBy;
     private final List<String> innerScalars;
     private final List<String> scalars;
+    private final PrometheusCallShape shape;
 
     public PrometheusTableScan(RelOptCluster cluster,
                                RelTraitSet traitSet,
@@ -48,7 +50,8 @@ public class PrometheusTableScan extends TableScan {
                                String agg,
                                List<String> aggBy,
                                List<String> innerScalars,
-                               List<String> scalars) {
+                               List<String> scalars,
+                               PrometheusCallShape shape) {
         super(cluster, traitSet, ImmutableList.of(), table);
         this.prometheusTable = prometheusTable;
         this.labelFilters = Map.copyOf(labelFilters);
@@ -64,6 +67,7 @@ public class PrometheusTableScan extends TableScan {
         this.aggBy = aggBy == null ? List.of() : List.copyOf(aggBy);
         this.innerScalars = innerScalars == null ? List.of() : List.copyOf(innerScalars);
         this.scalars = scalars == null ? List.of() : List.copyOf(scalars);
+        this.shape = shape == null ? PrometheusCallShape.EMPTY : shape;
     }
 
     public static PrometheusTableScan create(RelOptCluster cluster,
@@ -86,7 +90,8 @@ public class PrometheusTableScan extends TableScan {
                 null,
                 List.of(),
                 List.of(),
-                List.of());
+                List.of(),
+                PrometheusCallShape.EMPTY);
     }
 
     public PrometheusTable getPrometheusTable() {
@@ -165,10 +170,18 @@ public class PrometheusTableScan extends TableScan {
         return scalars.isEmpty() ? null : String.join(",", scalars);
     }
 
+    public PrometheusCallShape getShape() {
+        return shape;
+    }
+
+    public String shapeSpec() {
+        return shape.spec();
+    }
+
     public PrometheusTableScan withFilters(Map<String, String> labelFilters, Long startMillis, Long endMillis) {
         Map<String, String> merged = new LinkedHashMap<>(this.labelFilters);
         merged.putAll(labelFilters);
-        return rebuild(getTraitSet(), merged, startMillis, endMillis, promFunction, promWindow, promArgs, rateWindow, quantilePhi, quantileBy, agg, aggBy, innerScalars, scalars);
+        return rebuild(getTraitSet(), merged, startMillis, endMillis, promFunction, promWindow, promArgs, rateWindow, quantilePhi, quantileBy, agg, aggBy, innerScalars, scalars, shape);
     }
 
     public PrometheusTableScan withFunction(String promFunction, String promWindow) {
@@ -176,7 +189,7 @@ public class PrometheusTableScan extends TableScan {
     }
 
     public PrometheusTableScan withCall(String promFunction, String promWindow, List<String> scalars) {
-        return withCall(promFunction, promWindow, List.of(), null, List.of(), List.of(), scalars);
+        return withCall(promFunction, promWindow, List.of(), null, List.of(), List.of(), scalars, null);
     }
 
     public PrometheusTableScan withCall(String promFunction,
@@ -185,7 +198,8 @@ public class PrometheusTableScan extends TableScan {
                                         String agg,
                                         List<String> aggBy,
                                         List<String> innerScalars,
-                                        List<String> scalars) {
+                                        List<String> scalars,
+                                        PrometheusCallShape shape) {
         List<String> merged = new ArrayList<>(this.scalars);
         if (scalars != null) {
             merged.addAll(scalars);
@@ -199,16 +213,17 @@ public class PrometheusTableScan extends TableScan {
         List<String> args = promFunction != null ? (promArgs == null ? List.of() : promArgs) : this.promArgs;
         String aggregation = agg != null ? agg : this.agg;
         List<String> by = agg != null ? (aggBy == null ? List.of() : aggBy) : this.aggBy;
-        return rebuild(getTraitSet(), labelFilters, startMillis, endMillis, function, window, args, rateWindow, quantilePhi, quantileBy, aggregation, by, mergedInner, merged);
+        PrometheusCallShape nextShape = shape == null || shape.isEmpty() ? this.shape : shape;
+        return rebuild(getTraitSet(), labelFilters, startMillis, endMillis, function, window, args, rateWindow, quantilePhi, quantileBy, aggregation, by, mergedInner, merged, nextShape);
     }
 
     public PrometheusTableScan withRateWindow(String rateWindow) {
-        return rebuild(getTraitSet(), labelFilters, startMillis, endMillis, promFunction, promWindow, promArgs, rateWindow, quantilePhi, quantileBy, agg, aggBy, innerScalars, scalars);
+        return rebuild(getTraitSet(), labelFilters, startMillis, endMillis, promFunction, promWindow, promArgs, rateWindow, quantilePhi, quantileBy, agg, aggBy, innerScalars, scalars, shape);
     }
 
     public PrometheusTableScan withQuantile(String quantilePhi, List<String> quantileBy, String rateWindow) {
         String window = rateWindow != null ? rateWindow : this.rateWindow;
-        return rebuild(getTraitSet(), labelFilters, startMillis, endMillis, promFunction, promWindow, promArgs, window, quantilePhi, quantileBy, agg, aggBy, innerScalars, scalars);
+        return rebuild(getTraitSet(), labelFilters, startMillis, endMillis, promFunction, promWindow, promArgs, window, quantilePhi, quantileBy, agg, aggBy, innerScalars, scalars, shape);
     }
 
     public String filterSpec() {
@@ -224,7 +239,7 @@ public class PrometheusTableScan extends TableScan {
 
     @Override
     public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
-        return rebuild(traitSet, labelFilters, startMillis, endMillis, promFunction, promWindow, promArgs, rateWindow, quantilePhi, quantileBy, agg, aggBy, innerScalars, scalars);
+        return rebuild(traitSet, labelFilters, startMillis, endMillis, promFunction, promWindow, promArgs, rateWindow, quantilePhi, quantileBy, agg, aggBy, innerScalars, scalars, shape);
     }
 
     private PrometheusTableScan rebuild(RelTraitSet traitSet,
@@ -240,7 +255,8 @@ public class PrometheusTableScan extends TableScan {
                                         String agg,
                                         List<String> aggBy,
                                         List<String> innerScalars,
-                                        List<String> scalars) {
+                                        List<String> scalars,
+                                        PrometheusCallShape shape) {
         return new PrometheusTableScan(
                 getCluster(),
                 traitSet,
@@ -258,7 +274,8 @@ public class PrometheusTableScan extends TableScan {
                 agg,
                 aggBy,
                 innerScalars,
-                scalars);
+                scalars,
+                shape);
     }
 
     @Override
@@ -276,6 +293,10 @@ public class PrometheusTableScan extends TableScan {
                 .itemIf("inner", innerScalarSpec(), !innerScalars.isEmpty())
                 .itemIf("agg", agg, agg != null)
                 .itemIf("aggBy", aggBySpec(), !aggBy.isEmpty())
-                .itemIf("scalars", scalarSpec(), !scalars.isEmpty());
+                .itemIf("scalars", scalarSpec(), !scalars.isEmpty())
+                .itemIf("offset", shape.offset(), shape.offset() != null)
+                .itemIf("rank", shape.rank() + "(" + shape.rankCount() + ")", shape.rank() != null)
+                .itemIf("over", shape.outerFunction() + "[" + shape.outerWindow() + "]", shape.outerFunction() != null)
+                .itemIf("label", shape.labelDst(), shape.labelDst() != null);
     }
 }

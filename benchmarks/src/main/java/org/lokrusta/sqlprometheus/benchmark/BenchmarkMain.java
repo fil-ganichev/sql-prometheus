@@ -23,8 +23,11 @@ public final class BenchmarkMain {
         try (Connection connection = DriverManager.getConnection(QueryRunner.JDBC_URL)) {
             QueryRunner.verify(connection, client, window);
         }
+        try (Connection connection = DriverManager.getConnection(QueryRunner.CACHED_JDBC_URL)) {
+            QueryRunner.verify(connection, client, window);
+        }
         Options options = new OptionsBuilder()
-                .include("org\\.lokrusta\\.sqlprometheus\\.benchmark\\.(Sql|Promql)Benchmark")
+                .include("org\\.lokrusta\\.sqlprometheus\\.benchmark\\.(SqlCachedBenchmark|SqlBenchmark|PromqlBenchmark)")
                 .shouldFailOnError(true)
                 .jvmArgs(
                         "--add-opens=java.base/java.lang=ALL-UNNAMED",

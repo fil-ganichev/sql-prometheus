@@ -25,6 +25,8 @@ public final class QueryRunner {
     // and the default 30s timeout is tight for a full query_range of it.
     public static final String JDBC_URL =
             "jdbc:prometheus://localhost:9090?step=15s&maxRows=100000&queryTimeout=120";
+    public static final String CACHED_JDBC_URL =
+            JDBC_URL + "&planCacheMaxBytes=1048576&planCacheTtlSeconds=600";
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
     private static final Comparator<Point> ORDER =

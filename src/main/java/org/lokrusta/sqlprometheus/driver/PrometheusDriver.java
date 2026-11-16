@@ -7,6 +7,7 @@ import org.apache.calcite.sql2rel.SqlToRelConverter;
 import org.apache.calcite.tools.Program;
 import org.apache.calcite.util.Holder;
 import org.lokrusta.sqlprometheus.exec.PrometheusOptions;
+import org.lokrusta.sqlprometheus.plan.PlanCachingConnection;
 import org.lokrusta.sqlprometheus.plan.PrometheusPrograms;
 
 import java.sql.Connection;
@@ -49,18 +50,21 @@ public class PrometheusDriver extends org.apache.calcite.jdbc.Driver {
         if (!acceptsURL(url)) {
             return null;
         }
-        Connection connection = super.connect(toCalciteUrl(url), info);
+        Target target = target(url);
+        Connection connection = super.connect(toCalciteUrl(target), info);
         SchemaPlus prometheus = connection.unwrap(CalciteConnection.class).getRootSchema().getSubSchema("prometheus");
         if (prometheus == null) {
             throw new SQLException("Prometheus schema was not created");
         }
         // Calcite otherwise snapshots table names once. A later metric would never be looked up.
         prometheus.setCacheEnabled(false);
-        return connection;
+        if (target.options.planCacheMaxBytes() <= 0) {
+            return connection;
+        }
+        return PlanCachingConnection.wrap(connection, target.options);
     }
 
-    private static String toCalciteUrl(String url) throws SQLException {
-        Target target = target(url);
+    private static String toCalciteUrl(Target target) {
         return CONNECT_STRING_PREFIX
                 + "unquotedCasing=unchanged;"
                 + "parserFactory=org.lokrusta.sqlprometheus.driver.PrometheusParserFactory;"
@@ -94,6 +98,8 @@ public class PrometheusDriver extends org.apache.calcite.jdbc.Driver {
         Integer queryTimeout = null;
         Integer schemaCacheMaxBytes = null;
         Integer schemaCacheTtlSeconds = null;
+        Integer planCacheMaxBytes = null;
+        Integer planCacheTtlSeconds = null;
         Set<String> seen = new HashSet<>();
         if (!queryString.isEmpty()) {
             for (String part : queryString.split("&")) {
@@ -117,6 +123,8 @@ public class PrometheusDriver extends org.apache.calcite.jdbc.Driver {
                         case "queryTimeout" -> queryTimeout = PrometheusOptions.positiveInt(name, value);
                         case "schemaCacheMaxBytes" -> schemaCacheMaxBytes = PrometheusOptions.positiveInt(name, value);
                         case "schemaCacheTtlSeconds" -> schemaCacheTtlSeconds = PrometheusOptions.positiveInt(name, value);
+                        case "planCacheMaxBytes" -> planCacheMaxBytes = PrometheusOptions.nonNegativeInt(name, value);
+                        case "planCacheTtlSeconds" -> planCacheTtlSeconds = PrometheusOptions.positiveInt(name, value);
                         default -> throw new SQLException("Unknown parameter " + name);
                     }
                 } catch (IllegalArgumentException e) {
@@ -131,7 +139,9 @@ public class PrometheusDriver extends org.apache.calcite.jdbc.Driver {
                 connectTimeout == null ? defaults.connectTimeoutSeconds() : connectTimeout,
                 queryTimeout == null ? defaults.queryTimeoutSeconds() : queryTimeout,
                 schemaCacheMaxBytes == null ? defaults.schemaCacheMaxBytes() : schemaCacheMaxBytes,
-                schemaCacheTtlSeconds == null ? defaults.schemaCacheTtlSeconds() : schemaCacheTtlSeconds);
+                schemaCacheTtlSeconds == null ? defaults.schemaCacheTtlSeconds() : schemaCacheTtlSeconds,
+                planCacheMaxBytes == null ? defaults.planCacheMaxBytes() : planCacheMaxBytes,
+                planCacheTtlSeconds == null ? defaults.planCacheTtlSeconds() : planCacheTtlSeconds);
     }
 
     private static String model(String baseUrl, PrometheusOptions options) {
@@ -145,6 +155,8 @@ public class PrometheusDriver extends org.apache.calcite.jdbc.Driver {
                 + ",\"queryTimeout\":" + options.queryTimeoutSeconds()
                 + ",\"schemaCacheMaxBytes\":" + options.schemaCacheMaxBytes()
                 + ",\"schemaCacheTtlSeconds\":" + options.schemaCacheTtlSeconds()
+                + ",\"planCacheMaxBytes\":" + options.planCacheMaxBytes()
+                + ",\"planCacheTtlSeconds\":" + options.planCacheTtlSeconds()
                 + "}}]}";
     }
 

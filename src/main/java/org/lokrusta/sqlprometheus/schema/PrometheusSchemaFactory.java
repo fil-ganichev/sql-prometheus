@@ -25,7 +25,9 @@ public class PrometheusSchemaFactory implements SchemaFactory {
                 positive("connectTimeout", operand.get("connectTimeout"), defaults.connectTimeoutSeconds()),
                 positive("queryTimeout", operand.get("queryTimeout"), defaults.queryTimeoutSeconds()),
                 positive("schemaCacheMaxBytes", operand.get("schemaCacheMaxBytes"), defaults.schemaCacheMaxBytes()),
-                positive("schemaCacheTtlSeconds", operand.get("schemaCacheTtlSeconds"), defaults.schemaCacheTtlSeconds()));
+                positive("schemaCacheTtlSeconds", operand.get("schemaCacheTtlSeconds"), defaults.schemaCacheTtlSeconds()),
+                nonNegative("planCacheMaxBytes", operand.get("planCacheMaxBytes"), defaults.planCacheMaxBytes()),
+                positive("planCacheTtlSeconds", operand.get("planCacheTtlSeconds"), defaults.planCacheTtlSeconds()));
     }
 
     private static int positive(String name, Object raw, int fallback) {
@@ -33,5 +35,12 @@ public class PrometheusSchemaFactory implements SchemaFactory {
             return fallback;
         }
         return PrometheusOptions.positiveInt(name, raw.toString());
+    }
+
+    private static int nonNegative(String name, Object raw, int fallback) {
+        if (raw == null) {
+            return fallback;
+        }
+        return PrometheusOptions.nonNegativeInt(name, raw.toString());
     }
 }

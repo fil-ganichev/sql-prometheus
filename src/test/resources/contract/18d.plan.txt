@@ -1,0 +1,10 @@
+PROM_SUM_OVER_TIME cannot apply this "value" condition before the function.
+"value"
+One comparison belongs in PROM_SUM_OVER_TIME_WHEN, for example:
+  SELECT PROM_SUM_OVER_TIME_WHEN("value" > 1, '5m') FROM operation_code_total
+WHERE "timestamp" >= TIMESTAMP '2026-11-18 00:00:00'
+  AND "timestamp" <= TIMESTAMP '2026-11-18 01:00:00'
+The function then runs on all series. Filter an alias of the result:
+  SELECT v FROM (SELECT PROM_SUM_OVER_TIME("value", '5m') AS v FROM operation_code_total
+WHERE "timestamp" >= TIMESTAMP '2026-11-18 00:00:00'
+  AND "timestamp" <= TIMESTAMP '2026-11-18 01:00:00') t WHERE v

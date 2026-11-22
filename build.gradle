@@ -30,6 +30,67 @@ tasks.withType(JavaCompile).configureEach {
     options.encoding = 'UTF-8'
 }
 
+tasks.register('stageDbeaver', Sync) {
+    group = 'build'
+    description = 'Copies the driver jar and its runtime libraries into build/dbeaver.'
+    dependsOn tasks.named('jar')
+    into layout.buildDirectory.dir('dbeaver')
+    from tasks.named('jar', Jar).flatMap { it.archiveFile }
+    from configurations.runtimeClasspath
+}
+
+def driverServices = layout.buildDirectory.dir('driver-services')
+
+def mergeDriverServices = tasks.register('mergeDriverServices') {
+    def runtimeClasspath = configurations.runtimeClasspath
+    inputs.files(runtimeClasspath)
+    inputs.dir(layout.projectDirectory.dir('src/main/resources/META-INF/services'))
+    outputs.dir(driverServices)
+    doLast {
+        def dest = driverServices.get().asFile
+        dest.deleteDir()
+        dest.mkdirs()
+        def lines = new LinkedHashMap<String, List<String>>()
+        def absorb = { tree ->
+            tree.matching { include 'META-INF/services/*' }.each { File service ->
+                def collected = lines.computeIfAbsent(service.name) { new ArrayList<String>() }
+                service.eachLine('UTF-8') { String line ->
+                    def trimmed = line.trim()
+                    if (trimmed && !trimmed.startsWith('#') && !collected.contains(trimmed)) {
+                        collected.add(trimmed)
+                    }
+                }
+            }
+        }
+        absorb(fileTree(layout.projectDirectory.dir('src/main/resources')))
+        runtimeClasspath.files.each { File file ->
+            absorb(file.isDirectory() ? fileTree(file) : zipTree(file))
+        }
+        lines.put('java.sql.Driver', ['org.lokrusta.sqlprometheus.driver.PrometheusDriver'])
+        lines.each { name, values ->
+            new File(dest, name).setText(values.join('\n') + '\n', 'UTF-8')
+        }
+    }
+}
+
+tasks.register('allJar', Jar) {
+    group = 'build'
+    description = 'Builds a single jar with the driver and its runtime libraries.'
+    archiveClassifier = 'all'
+    dependsOn mergeDriverServices
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+    exclude 'META-INF/*.SF', 'META-INF/*.DSA', 'META-INF/*.RSA', 'META-INF/services/**', '**/module-info.class'
+    from sourceSets.main.output
+    from {
+        configurations.runtimeClasspath.collect { File file ->
+            file.isDirectory() ? file : zipTree(file)
+        }
+    }
+    into('META-INF/services') {
+        from mergeDriverServices
+    }
+}
+
 tasks.named('test') {
     useJUnitPlatform()
     jvmArgs(

@@ -1,0 +1,4 @@
+LogicalProject(v=[$0])
+  LogicalFilter(condition=[>($0, CAST(1):DOUBLE NOT NULL)])
+    LogicalProject(v=[$1])
+      PrometheusTableScan(table=[[prometheus, operation_code_total]], start=[1794960000001], end=[1794963600000], function=[rate], window=[5m])

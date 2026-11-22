@@ -30,6 +30,59 @@ tasks.withType(JavaCompile).configureEach {
     options.encoding = 'UTF-8'
 }
 
+def connectorServices = layout.buildDirectory.dir('connector-services')
+
+def mergeConnectorServices = tasks.register('mergeConnectorServices') {
+    def runtimeClasspath = configurations.runtimeClasspath
+    inputs.files(runtimeClasspath)
+    outputs.dir(connectorServices)
+    doLast {
+        def dest = connectorServices.get().asFile
+        dest.deleteDir()
+        dest.mkdirs()
+        def lines = new LinkedHashMap<String, List<String>>()
+        def absorb = { tree ->
+            tree.matching { include 'META-INF/services/*' }.each { File service ->
+                def collected = lines.computeIfAbsent(service.name) { new ArrayList<String>() }
+                service.eachLine('UTF-8') { String line ->
+                    def trimmed = line.trim()
+                    if (trimmed && !trimmed.startsWith('#') && !collected.contains(trimmed)) {
+                        collected.add(trimmed)
+                    }
+                }
+            }
+        }
+        runtimeClasspath.files.each { File file ->
+            absorb(file.isDirectory() ? fileTree(file) : zipTree(file))
+        }
+        lines.put('java.sql.Driver', ['org.lokrusta.sqlprometheus.driver.PrometheusDriver'])
+        lines.each { name, values ->
+            new File(dest, name).setText(values.join('\n') + '\n', 'UTF-8')
+        }
+    }
+}
+
+tasks.register('allJar', Jar) {
+    group = 'build'
+    description = 'Builds a single runnable jar with the connector, the driver, and their runtime libraries.'
+    archiveClassifier = 'all'
+    dependsOn mergeConnectorServices
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+    manifest {
+        attributes 'Main-Class': 'org.lokrusta.sqlprometheus.grafana.ConnectorMain'
+    }
+    exclude 'META-INF/*.SF', 'META-INF/*.DSA', 'META-INF/*.RSA', 'META-INF/services/**', '**/module-info.class'
+    from sourceSets.main.output
+    from {
+        configurations.runtimeClasspath.collect { File file ->
+            file.isDirectory() ? file : zipTree(file)
+        }
+    }
+    into('META-INF/services') {
+        from mergeConnectorServices
+    }
+}
+
 tasks.named('test') {
     useJUnitPlatform()
     jvmArgs(

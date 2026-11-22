@@ -1,0 +1,4 @@
+LogicalProject(code=[$0], p95=[$2])
+  LogicalProject(code=[$0], $f1=[$1], p95=[$4])
+    LogicalProject(code=[$3], $f1=[FLOOR($0, FLAG(HOUR))], $f2=[0.95:DECIMAL(3, 2)], le=[$4], value=[$1])
+      PrometheusTableScan(table=[[prometheus, operation_time_seconds_bucket]], start=[1794960000001], end=[1794974400000], range=[1h], quantile=[0.95], step=[1h], sumBy=[le, code])

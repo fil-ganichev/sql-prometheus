@@ -1,0 +1,3 @@
+LogicalProject(timestamp=[$0], value=[$1])
+  LogicalFilter(condition=[OR(=($3, 'ERROR'), AND(=($2, 'getOrder'), =($3, 'SUCCESS')))])
+    PrometheusTableScan(table=[[prometheus, operation_code_total]], start=[1794960000001], end=[1794963600000])

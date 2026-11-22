@@ -45,13 +45,17 @@ public class PrometheusRowIterator implements Iterator<Object[]> {
                                              String innerScalars,
                                              String agg,
                                              String aggBy,
-                                             String callShape) {
+                                             String callShape,
+                                             boolean collapseLatest) {
         String json = PrometheusClient.queryRange(
                 baseUrl, metric, labelFilters, startMillis, endMillis, step, connectTimeoutSeconds, queryTimeoutSeconds,
                 promFunction, promWindow, promArgs, rateWindow, quantilePhi, quantileBy, scalars, innerScalars, agg, aggBy,
                 callShape);
-        boolean latestSample = quantilePhi != null && !quantilePhi.isEmpty();
-        return fromJson(json, labelColumns, labelFilters, startMillis, endMillis, maxRows, latestSample);
+        boolean latestSample = collapseLatest;
+        boolean skipAbsentLabels = latestSample
+                || (quantilePhi != null && !quantilePhi.isEmpty())
+                || (agg != null && !agg.isEmpty());
+        return fromJson(json, labelColumns, labelFilters, startMillis, endMillis, maxRows, latestSample, skipAbsentLabels);
     }
 
     public static PrometheusRowIterator fromJson(String json,
@@ -66,7 +70,7 @@ public class PrometheusRowIterator implements Iterator<Object[]> {
                                                  long startMillis,
                                                  long endMillis,
                                                  int maxRows) {
-        return fromJson(json, labelColumns, Map.of(), startMillis, endMillis, maxRows, false);
+        return fromJson(json, labelColumns, Map.of(), startMillis, endMillis, maxRows, false, false);
     }
 
     private static PrometheusRowIterator fromJson(String json,
@@ -75,8 +79,9 @@ public class PrometheusRowIterator implements Iterator<Object[]> {
                                                   long startMillis,
                                                   long endMillis,
                                                   int maxRows,
-                                                  boolean latestSample) {
-        List<Object[]> rows = parse(json, labelColumns, labelFilters, startMillis, endMillis);
+                                                  boolean latestSample,
+                                                  boolean skipAbsentLabels) {
+        List<Object[]> rows = parse(json, labelColumns, labelFilters, startMillis, endMillis, skipAbsentLabels);
         return new PrometheusRowIterator(latestSample ? latest(rows, labelColumns.size()) : rows, maxRows);
     }
 
@@ -107,7 +112,8 @@ public class PrometheusRowIterator implements Iterator<Object[]> {
         }
         returned++;
         if (returned > maxRows) {
-            throw new RuntimeException("Запрос заблокирован: превышен лимит строк для защиты памяти (" + maxRows + ")");
+            throw new RuntimeException("Запрос заблокирован: превышен лимит строк для защиты памяти ("
+                    + maxRows + "). Агрегат по обрезанному ряду не считается.");
         }
         return rows.get(index++);
     }
@@ -116,7 +122,8 @@ public class PrometheusRowIterator implements Iterator<Object[]> {
                                         List<String> labelColumns,
                                         Map<String, String> labelFilters,
                                         long startMillis,
-                                        long endMillis) {
+                                        long endMillis,
+                                        boolean skipAbsentLabels) {
         try {
             JsonNode root = MAPPER.readTree(json);
             if (!"success".equals(root.path("status").asText())) {
@@ -125,7 +132,7 @@ public class PrometheusRowIterator implements Iterator<Object[]> {
             List<Object[]> parsed = new ArrayList<>();
             for (JsonNode series : root.path("data").path("result")) {
                 JsonNode labels = series.path("metric");
-                if (!matches(labels, labelFilters)) {
+                if (!matches(labels, labelFilters, skipAbsentLabels)) {
                     continue;
                 }
                 for (JsonNode sample : series.path("values")) {
@@ -135,7 +142,7 @@ public class PrometheusRowIterator implements Iterator<Object[]> {
                     }
                     Object[] row = new Object[2 + labelColumns.size()];
                     row[0] = timestamp;
-                    row[1] = Double.parseDouble(sample.get(1).asText());
+                    row[1] = prometheusDouble(sample.get(1).asText());
                     for (int i = 0; i < labelColumns.size(); i++) {
                         row[2 + i] = labelValue(labels, labelColumns.get(i));
                     }
@@ -158,12 +165,35 @@ public class PrometheusRowIterator implements Iterator<Object[]> {
         if (text == null || text.isEmpty()) {
             return null;
         }
-        return Double.parseDouble(text);
+        return prometheusDouble(text);
     }
 
-    private static boolean matches(JsonNode labels, Map<String, String> labelFilters) {
+    /**
+     * Prometheus writes the open histogram bucket as {@code +Inf}. {@code Double.parseDouble} rejects that token.
+     */
+    private static double prometheusDouble(String text) {
+        return switch (text) {
+            case "+Inf", "Inf" -> Double.POSITIVE_INFINITY;
+            case "-Inf" -> Double.NEGATIVE_INFINITY;
+            default -> Double.parseDouble(text);
+        };
+    }
+
+    private static boolean matches(JsonNode labels, Map<String, String> labelFilters, boolean skipAbsentLabels) {
         for (Map.Entry<String, String> filter : labelFilters.entrySet()) {
-            if (!filter.getValue().equals(labels.path(filter.getKey()).asText())) {
+            String stored = filter.getValue();
+            boolean negated = stored.startsWith("!=");
+            String expected = negated ? stored.substring(2) : stored;
+            JsonNode node = labels.get(filter.getKey());
+            boolean missing = node == null || node.isNull() || node.isMissingNode();
+            if (missing) {
+                if (skipAbsentLabels || negated) {
+                    continue;
+                }
+                return false;
+            }
+            boolean equal = expected.equals(node.asText());
+            if (negated ? equal : !equal) {
                 return false;
             }
         }

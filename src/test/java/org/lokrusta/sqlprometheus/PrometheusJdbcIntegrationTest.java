@@ -162,7 +162,7 @@ class PrometheusJdbcIntegrationTest {
             String bounded = """
                     SELECT c.image, (SUM(c.value) / SUM(n.value)) * 100 AS cpu_percentage
                     FROM container_cpu_usage_seconds_total c
-                    JOIN node_cpu_seconds_total n ON c.instance = n.instance
+                    JOIN node_cpu_seconds_total n ON c.instance = n.instance AND c.timestamp = n.timestamp
                     WHERE c.timestamp > TIMESTAMP '%s'
                       AND c.timestamp < TIMESTAMP '%s'
                       AND c.image IS NOT NULL
@@ -197,7 +197,7 @@ class PrometheusJdbcIntegrationTest {
         try (ResultSet resultSet = statement.executeQuery("""
                 SELECT c.image, c.value, n.value
                 FROM container_cpu_usage_seconds_total c
-                JOIN node_cpu_seconds_total n ON c.instance = n.instance
+                JOIN node_cpu_seconds_total n ON c.instance = n.instance AND c.timestamp = n.timestamp
                 WHERE c.timestamp > TIMESTAMP '%s'
                   AND c.timestamp < TIMESTAMP '%s'
                   AND c.image IS NOT NULL

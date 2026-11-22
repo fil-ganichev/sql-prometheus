@@ -1,0 +1,2 @@
+LogicalProject(EXPR$0=[$1])
+  PrometheusTableScan(table=[[prometheus, operation_code_total]], filters=[{code=!=ERROR}], start=[1794960000001], end=[1794963600000], function=[rate], window=[5m])

@@ -1,6 +1,7 @@
 package org.lokrusta.sqlprometheus.rel;
 
 import org.apache.calcite.plan.RelOptRuleCall;
+import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.RelRule;
 import org.apache.calcite.plan.hep.HepRelVertex;
 import org.apache.calcite.rel.RelNode;
@@ -14,6 +15,7 @@ import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexShuttle;
+import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.lokrusta.sqlprometheus.exec.PrometheusCallShape;
@@ -59,10 +61,39 @@ public class PrometheusFunctionPushDownRule extends RelRule<RelRule.Config> {
         for (RexNode expression : project.getProjects()) {
             projects.add(expression.accept(rewriter));
         }
-        if (!rewriter.saw || rewriter.conflict || rewriter.assignments.isEmpty()) {
+        if (rewriter.conflict) {
+            throw new IllegalStateException(rewriter.conflictText == null
+                    ? "One metric cannot compute two different expressions. Read it in a separate query for each expression."
+                    : rewriter.conflictText);
+        }
+        if (!rewriter.saw || (rewriter.assignments.isEmpty() && rewriter.histograms.isEmpty())) {
             return;
         }
+        for (RexNode expression : project.getProjects()) {
+            if (expression instanceof RexInputRef ref) {
+                Target target = resolve(project.getInput(), ref.getIndex());
+                Assignment assigned = target == null ? null : rewriter.assignments.get(target.scan);
+                if (target != null && target.column == 1 && assigned != null
+                        && (assigned.function != null || assigned.agg != null)) {
+                    throw new IllegalStateException(target.scan.getPrometheusTable().metric()
+                            + " projects both the raw \"value\" column and "
+                            + assigned.sqlName
+                            + ". After the function is pushed both columns would show the function result. "
+                            + "Drop \"value\" from the select list, or read the raw samples in a separate query.");
+                }
+            }
+        }
         Map<PrometheusTableScan, PrometheusTableScan> replacements = new IdentityHashMap<>();
+        rewriter.histograms.forEach((scan, histogram) -> {
+            List<String> by = new ArrayList<>();
+            by.add("le");
+            for (String label : aggregateBy(scan, project)) {
+                if (!by.contains(label)) {
+                    by.add(label);
+                }
+            }
+            replacements.put(scan, scan.withQuantile(histogram[0], by, histogram[1]));
+        });
         rewriter.assignments.forEach((scan, assignment) -> {
             List<String> by = assignment.agg == null ? List.of() : aggregateBy(scan, project);
             replacements.put(scan, scan.withCall(
@@ -75,9 +106,10 @@ public class PrometheusFunctionPushDownRule extends RelRule<RelRule.Config> {
                     assignment.scalars,
                     assignment.shape));
         });
+        RelNode input = replaceScans(stripValueFilters(project.getInput(), rewriter.stripValue), replacements);
         call.transformTo(project.copy(
                 project.getTraitSet(),
-                replaceScans(project.getInput(), replacements),
+                input,
                 projects,
                 project.getRowType()));
     }
@@ -190,6 +222,7 @@ public class PrometheusFunctionPushDownRule extends RelRule<RelRule.Config> {
     }
 
     private static final class Assignment {
+        private final String sqlName;
         private final String function;
         private final String window;
         private final List<String> args;
@@ -198,13 +231,15 @@ public class PrometheusFunctionPushDownRule extends RelRule<RelRule.Config> {
         private final List<String> scalars;
         private final PrometheusCallShape shape;
 
-        private Assignment(String function,
+        private Assignment(String sqlName,
+                           String function,
                            String window,
                            List<String> args,
                            String agg,
                            List<String> innerScalars,
                            List<String> scalars,
                            PrometheusCallShape shape) {
+            this.sqlName = sqlName;
             this.function = function;
             this.window = window;
             this.args = args;
@@ -228,8 +263,11 @@ public class PrometheusFunctionPushDownRule extends RelRule<RelRule.Config> {
     private static final class Rewriter extends RexShuttle {
         private final RelNode input;
         private final Map<PrometheusTableScan, Assignment> assignments = new IdentityHashMap<>();
+        private final Set<PrometheusTableScan> stripValue = Collections.newSetFromMap(new IdentityHashMap<>());
+        private final Map<PrometheusTableScan, String[]> histograms = new IdentityHashMap<>();
         private boolean saw;
         private boolean conflict;
+        private String conflictText;
 
         private Rewriter(RelNode input) {
             this.input = input;
@@ -237,6 +275,9 @@ public class PrometheusFunctionPushDownRule extends RelRule<RelRule.Config> {
 
         @Override
         public RexNode visitCall(RexCall call) {
+            if ("PROM_HISTOGRAM_QUANTILE".equalsIgnoreCase(call.getOperator().getName())) {
+                return pushHistogram(call);
+            }
             Parsed parsed = parse(call);
             if (parsed == null) {
                 return super.visitCall(call);
@@ -249,21 +290,74 @@ public class PrometheusFunctionPushDownRule extends RelRule<RelRule.Config> {
                 throw new IllegalStateException(
                         parsed.sqlName + " compares the value column with a numeric literal");
             }
+            if (target != null && target.scan.getQuantilePhi() != null
+                    && (pushedFunction || pushedAggregate)) {
+                throw new IllegalStateException(target.scan.getPrometheusTable().metric()
+                        + " cannot compute histogram_quantile and " + call.getOperator().getName()
+                        + " on one scan. Use one of them in a separate query.");
+            }
             if (target == null
                     || target.column != 1
                     || (pushedFunction && parsed.window == null)
                     || (pushedFunction && target.scan.getPromFunction() != null)
-                    || (pushedFunction && target.scan.getQuantilePhi() != null)
                     || (pushedAggregate && target.scan.getAgg() != null)
-                    || (pushedAggregate && target.scan.getQuantilePhi() != null)
                     || (pushedShape && !target.scan.getShape().isEmpty())) {
                 if (pushedFunction || pushedAggregate || pushedShape) {
                     conflict = true;
+                    if (conflictText == null && target != null) {
+                        conflictText = PrometheusMessages.twoExpressions(
+                                target.scan,
+                                PrometheusMessages.callText(parsed.sqlName, parsed.window, parsed.args),
+                                null);
+                    }
                 }
                 return super.visitCall(call);
             }
-            if (pushedFunction && parsed.sqlName != null) {
+            boolean scalarOnly = !pushedFunction && !pushedAggregate && !pushedShape && !parsed.scalars.isEmpty();
+            if (scalarOnly
+                    && target.scan.getPromFunction() == null
+                    && target.scan.getAgg() == null
+                    && target.scan.getQuantilePhi() == null
+                    && !assignments.containsKey(target.scan)
+                    && !histograms.containsKey(target.scan)) {
+                return super.visitCall(call);
+            }
+            String window = parsed.window;
+            List<String> args = parsed.args;
+            if (parsed.whenCompare != null && parsed.sqlName != null) {
                 rejectValuePredicate(input, target.scan, parsed.sqlName);
+            } else if (pushedFunction && parsed.window != null) {
+                ValueUse use = valueUse(input, target.scan);
+                if (use.complex) {
+                    throw new IllegalStateException(PrometheusMessages.complexValue(
+                            parsed.sqlName, parsed.window, target.scan, input));
+                }
+                if (use.comparison != null) {
+                    String base = parsed.window;
+                    String step;
+                    int colon = base.indexOf(':');
+                    if (colon >= 0) {
+                        step = base.substring(colon + 1);
+                        base = base.substring(0, colon);
+                    } else {
+                        step = target.scan.getPrometheusTable().options().step();
+                    }
+                    long stepMillis = PrometheusSqlOperatorTable.durationMillis(step);
+                    long windowMillis = PrometheusSqlOperatorTable.durationMillis(base);
+                    if (stepMillis < 0 || windowMillis < 0 || stepMillis >= windowMillis) {
+                        throw new IllegalStateException(parsed.sqlName + " step " + step
+                                + " must be shorter than the rate window " + base
+                                + ". For example: " + parsed.sqlName + "_WHEN(\"value\" > 1, '" + base + "', '15s').");
+                    }
+                    window = base + ":" + step;
+                    String extra = parsed.args.isEmpty() ? null : String.join(", ", parsed.args);
+                    args = List.of(extra == null || extra.isEmpty() ? use.comparison : use.comparison + ";" + extra);
+                    stripValue.add(target.scan);
+                }
+            }
+            if (pushedFunction || pushedAggregate) {
+                rejectUnpushedLabels(input, target.scan, PrometheusMessages.callText(parsed.sqlName, parsed.window, parsed.args));
+                rejectJoinedLabel(input, target.scan, call.getOperator().getName());
             }
             if (parsed.labelDst != null) {
                 List<String> labels = target.scan.getPrometheusTable().labelColumns();
@@ -272,8 +366,6 @@ public class PrometheusFunctionPushDownRule extends RelRule<RelRule.Config> {
                             "PROM_LABEL_REPLACE destination and source must be labels that already belong to the metric");
                 }
             }
-            String window = parsed.window;
-            List<String> args = parsed.args;
             if (parsed.whenCompare != null) {
                 String step = parsed.whenStep != null
                         ? parsed.whenStep
@@ -314,15 +406,54 @@ public class PrometheusFunctionPushDownRule extends RelRule<RelRule.Config> {
                     parsed.labelRegex,
                     parsed.pipe);
             Assignment assignment = new Assignment(
+                    call.getOperator().getName(),
                     parsed.function, window, args, parsed.agg, parsed.innerScalars, parsed.scalars, shape);
             Assignment existing = assignments.get(target.scan);
             if (existing == null) {
                 assignments.put(target.scan, assignment);
             } else if (!existing.matches(assignment)) {
                 conflict = true;
+                conflictText = PrometheusMessages.twoExpressions(
+                        target.scan,
+                        PrometheusMessages.callText(existing.sqlName, existing.window, existing.args),
+                        PrometheusMessages.callText(assignment.sqlName, assignment.window, assignment.args));
             }
             saw = true;
             return parsed.value;
+        }
+
+        private RexNode pushHistogram(RexCall call) {
+            if (call.getOperands().size() != 2) {
+                throw new IllegalStateException(
+                        "PROM_HISTOGRAM_QUANTILE(phi, window) takes a phi between 0 and 1 and a duration. "
+                                + "For example: PROM_HISTOGRAM_QUANTILE(0.95, '5m').");
+            }
+            String phi = numberOf(call.getOperands().get(0));
+            String window = windowOf(call.getOperands().get(1));
+            if (phi == null || !unitInterval(phi) || window == null) {
+                throw new IllegalStateException(
+                        "PROM_HISTOGRAM_QUANTILE(phi, window) takes a phi between 0 and 1 and a duration. "
+                                + "For example: PROM_HISTOGRAM_QUANTILE(0.95, '5m').");
+            }
+            PrometheusTableScan scan = onlyScan(input);
+            if (scan == null || !scan.getPrometheusTable().labelColumns().stream().anyMatch(label -> "le".equalsIgnoreCase(label))) {
+                throw new IllegalStateException(
+                        "PROM_HISTOGRAM_QUANTILE reads one histogram metric that has an le label. "
+                                + "For example: SELECT PROM_HISTOGRAM_QUANTILE(0.95, '5m') FROM operation_time_seconds_bucket");
+            }
+            if (scan.getQuantilePhi() != null || scan.getPromFunction() != null || scan.getAgg() != null || histograms.containsKey(scan)) {
+                throw new IllegalStateException(scan.getPrometheusTable().metric()
+                        + " cannot compute PROM_HISTOGRAM_QUANTILE together with another Prometheus expression. "
+                        + "Use one expression, or read the metric twice.");
+            }
+            histograms.put(scan, new String[]{phi, window});
+            saw = true;
+            Integer index = columnIndex(input, scan, 1);
+            if (index == null) {
+                throw new IllegalStateException(
+                        "PROM_HISTOGRAM_QUANTILE needs the value column of " + scan.getPrometheusTable().metric() + ".");
+            }
+            return new RexInputRef(index, call.getType());
         }
     }
 
@@ -385,7 +516,9 @@ public class PrometheusFunctionPushDownRule extends RelRule<RelRule.Config> {
                             : peelOffsetOnly(unwrapCast(current.getOperands().get(0)), modifiers);
                     value = sample == null ? null : valueRef(sample);
                     window = current.getOperands().size() >= 2 ? windowOf(current.getOperands().get(1)) : null;
-                    args = arguments(current);
+                    StepSplit split = splitStep(current, function, window, modifiers.outerFunction == null, sqlName);
+                    window = split.window;
+                    args = split.args;
                     if ("predict_linear".equals(function) && window != null && args.size() != 1) {
                         throw new IllegalStateException("PROM_PREDICT_LINEAR seconds must be a numeric literal");
                     }
@@ -395,14 +528,6 @@ public class PrometheusFunctionPushDownRule extends RelRule<RelRule.Config> {
                     if ("quantile_over_time".equals(function) && (args.size() != 1 || !unitInterval(args.get(0)))) {
                         throw new IllegalStateException(
                                 "PROM_QUANTILE_OVER_TIME phi must be a numeric literal between 0 and 1");
-                    }
-                    if (function.endsWith("_over_time")
-                            && !"quantile_over_time".equals(function)
-                            && modifiers.outerFunction == null
-                            && current.getOperands().size() >= 3
-                            && !omitted(current.getOperands().get(2))) {
-                        throw new IllegalStateException(sqlName
-                                + " step is only used when the first argument is a Prometheus window function");
                     }
                 }
             }
@@ -716,12 +841,12 @@ public class PrometheusFunctionPushDownRule extends RelRule<RelRule.Config> {
                 + "The connection step becomes the subquery resolution unless the call sets its own.";
     }
 
-    private static List<String> arguments(RexCall call) {
-        if (call.getOperands().size() <= 2) {
+    private static List<String> arguments(RexCall call, int end) {
+        if (end <= 2) {
             return List.of();
         }
         List<String> args = new ArrayList<>();
-        for (int i = 2; i < call.getOperands().size(); i++) {
+        for (int i = 2; i < end; i++) {
             String number = numberOf(call.getOperands().get(i));
             if (number == null) {
                 return List.of();
@@ -729,6 +854,342 @@ public class PrometheusFunctionPushDownRule extends RelRule<RelRule.Config> {
             args.add(number);
         }
         return args;
+    }
+
+    private static final class StepSplit {
+        private final String window;
+        private final List<String> args;
+
+        private StepSplit(String window, List<String> args) {
+            this.window = window;
+            this.args = args;
+        }
+    }
+
+    private static StepSplit splitStep(RexCall call, String function, String window, boolean raw, String sqlName) {
+        int size = call.getOperands().size();
+        if (function != null && window != null && raw && size >= 3) {
+            RexNode last = call.getOperands().get(size - 1);
+            String step = windowOf(last);
+            if (step != null && numberOf(last) == null) {
+                long stepMillis = PrometheusSqlOperatorTable.durationMillis(step);
+                long windowMillis = PrometheusSqlOperatorTable.durationMillis(window);
+                if (stepMillis < 0 || windowMillis < 0 || stepMillis >= windowMillis) {
+                    throw new IllegalStateException(sqlName + " step " + step
+                            + " must be shorter than the rate window " + window
+                            + ". For example: " + sqlName + "(\"value\", '" + window + "', '15s').");
+                }
+                return new StepSplit(window + ":" + step, arguments(call, size - 1));
+            }
+        }
+        return new StepSplit(window, arguments(call, size));
+    }
+
+    private static final class ValueUse {
+        private String comparison;
+        private boolean complex;
+    }
+
+    private static ValueUse valueUse(RelNode node, PrometheusTableScan scan) {
+        ValueUse use = new ValueUse();
+        collectValue(node, scan, use);
+        return use;
+    }
+
+    private static void collectValue(RelNode node, PrometheusTableScan scan, ValueUse use) {
+        if (use.complex) {
+            return;
+        }
+        node = unwrap(node);
+        if (node instanceof LogicalFilter filter) {
+            if (containsScan(filter.getInput(), scan)) {
+                for (RexNode conjunct : RelOptUtil.conjunctions(filter.getCondition())) {
+                    classifyValue(conjunct, filter.getInput(), scan, use);
+                }
+            }
+            collectValue(filter.getInput(), scan, use);
+        } else if (node instanceof LogicalProject project) {
+            collectValue(project.getInput(), scan, use);
+        } else if (node instanceof LogicalJoin join) {
+            if (containsScan(join.getLeft(), scan)) {
+                collectValue(join.getLeft(), scan, use);
+            }
+            if (containsScan(join.getRight(), scan)) {
+                collectValue(join.getRight(), scan, use);
+            }
+        } else if (node instanceof LogicalAggregate aggregate) {
+            collectValue(aggregate.getInput(), scan, use);
+        }
+    }
+
+    private static void classifyValue(RexNode conjunct, RelNode scope, PrometheusTableScan scan, ValueUse use) {
+        if (!mentionsValue(conjunct, scope, scan)) {
+            return;
+        }
+        Comparison comparison = comparisonOf(conjunct);
+        Target target = comparison == null ? null : resolve(scope, comparison.value.getIndex());
+        if (comparison != null && target != null && target.scan == scan && target.column == 1) {
+            if (use.comparison != null) {
+                use.complex = true;
+            } else {
+                use.comparison = comparison.promql;
+            }
+            return;
+        }
+        use.complex = true;
+    }
+
+    private static PrometheusTableScan onlyScan(RelNode node) {
+        List<PrometheusTableScan> found = new ArrayList<>();
+        collectScans(node, found);
+        return found.size() == 1 ? found.get(0) : null;
+    }
+
+    private static void collectScans(RelNode node, List<PrometheusTableScan> found) {
+        node = unwrap(node);
+        if (node instanceof PrometheusTableScan scan) {
+            if (!found.contains(scan)) {
+                found.add(scan);
+            }
+            return;
+        }
+        if (node instanceof LogicalFilter filter) {
+            collectScans(filter.getInput(), found);
+        } else if (node instanceof LogicalProject project) {
+            collectScans(project.getInput(), found);
+        } else if (node instanceof LogicalAggregate aggregate) {
+            collectScans(aggregate.getInput(), found);
+        } else if (node instanceof LogicalJoin join) {
+            collectScans(join.getLeft(), found);
+            collectScans(join.getRight(), found);
+        }
+    }
+
+    private static Integer columnIndex(RelNode node, PrometheusTableScan scan, int column) {
+        node = unwrap(node);
+        if (node instanceof PrometheusTableScan current) {
+            return current == scan ? column : null;
+        }
+        if (node instanceof LogicalFilter filter) {
+            return columnIndex(filter.getInput(), scan, column);
+        }
+        if (node instanceof LogicalProject project) {
+            for (int i = 0; i < project.getProjects().size(); i++) {
+                if (project.getProjects().get(i) instanceof RexInputRef ref) {
+                    Target target = resolve(project.getInput(), ref.getIndex());
+                    if (target != null && target.scan == scan && target.column == column) {
+                        return i;
+                    }
+                }
+            }
+            return null;
+        }
+        if (node instanceof LogicalJoin join) {
+            Integer left = columnIndex(join.getLeft(), scan, column);
+            if (left != null) {
+                return left;
+            }
+            Integer right = columnIndex(join.getRight(), scan, column);
+            if (right == null) {
+                return null;
+            }
+            return join.getLeft().getRowType().getFieldCount() + right;
+        }
+        return null;
+    }
+
+    private static boolean containsScan(RelNode node, PrometheusTableScan scan) {
+        node = unwrap(node);
+        if (node == scan) {
+            return true;
+        }
+        if (node instanceof PrometheusTableScan) {
+            return false;
+        }
+        if (node instanceof LogicalFilter filter) {
+            return containsScan(filter.getInput(), scan);
+        }
+        if (node instanceof LogicalProject project) {
+            return containsScan(project.getInput(), scan);
+        }
+        if (node instanceof LogicalJoin join) {
+            return containsScan(join.getLeft(), scan) || containsScan(join.getRight(), scan);
+        }
+        if (node instanceof LogicalAggregate aggregate) {
+            return containsScan(aggregate.getInput(), scan);
+        }
+        return false;
+    }
+
+    private static void rejectUnpushedLabels(RelNode node, PrometheusTableScan scan, String callSql) {
+        node = unwrap(node);
+        if (node instanceof LogicalFilter filter) {
+            if (containsScan(filter.getInput(), scan)) {
+                for (RexNode conjunct : RelOptUtil.conjunctions(filter.getCondition())) {
+                    if (mentionsLabel(conjunct, filter.getInput(), scan)) {
+                        throw new IllegalStateException(PrometheusMessages.labelCondition(
+                                callSql, scan, filter.getCondition(), filter.getInput()));
+                    }
+                }
+            }
+            rejectUnpushedLabels(filter.getInput(), scan, callSql);
+        } else if (node instanceof LogicalProject project) {
+            rejectUnpushedLabels(project.getInput(), scan, callSql);
+        } else if (node instanceof LogicalJoin join) {
+            if (containsScan(join.getLeft(), scan)) {
+                rejectUnpushedLabels(join.getLeft(), scan, callSql);
+            }
+            if (containsScan(join.getRight(), scan)) {
+                rejectUnpushedLabels(join.getRight(), scan, callSql);
+            }
+        } else if (node instanceof LogicalAggregate aggregate) {
+            rejectUnpushedLabels(aggregate.getInput(), scan, callSql);
+        }
+    }
+
+    private static boolean mentionsLabel(RexNode expression, RelNode scope, PrometheusTableScan scan) {
+        boolean[] found = {false};
+        expression.accept(new RexShuttle() {
+            @Override
+            public RexNode visitInputRef(RexInputRef ref) {
+                Target target = resolve(scope, ref.getIndex());
+                if (target != null && target.scan == scan && target.column >= 2) {
+                    found[0] = true;
+                }
+                return ref;
+            }
+        });
+        return found[0];
+    }
+
+    private static void rejectJoinedLabel(RelNode node, PrometheusTableScan scan, String sqlName) {
+        node = unwrap(node);
+        if (node instanceof LogicalJoin join) {
+            RelNode other = null;
+            if (containsScan(join.getLeft(), scan)) {
+                other = join.getRight();
+            } else if (containsScan(join.getRight(), scan)) {
+                other = join.getLeft();
+            }
+            if (other != null) {
+                PrometheusTableScan otherScan = directScan(other);
+                if (otherScan != null && otherScan != scan && !otherScan.getLabelFilters().isEmpty()) {
+                    throw new IllegalStateException(joinedLabelMessage(sqlName, scan, otherScan));
+                }
+                if (otherScan != null && hasOwnLabelPredicate(other, otherScan)) {
+                    throw new IllegalStateException(joinedLabelMessage(sqlName, scan, otherScan));
+                }
+            }
+            rejectJoinedLabel(join.getLeft(), scan, sqlName);
+            rejectJoinedLabel(join.getRight(), scan, sqlName);
+        } else if (node instanceof LogicalFilter filter) {
+            rejectJoinedLabel(filter.getInput(), scan, sqlName);
+        } else if (node instanceof LogicalProject project) {
+            rejectJoinedLabel(project.getInput(), scan, sqlName);
+        } else if (node instanceof LogicalAggregate aggregate) {
+            rejectJoinedLabel(aggregate.getInput(), scan, sqlName);
+        }
+    }
+
+    private static boolean hasOwnLabelPredicate(RelNode node, PrometheusTableScan scan) {
+        node = unwrap(node);
+        if (node instanceof LogicalFilter filter) {
+            for (RexNode conjunct : RelOptUtil.conjunctions(filter.getCondition())) {
+                if (mentionsLabel(conjunct, filter.getInput(), scan)) {
+                    return true;
+                }
+            }
+            return hasOwnLabelPredicate(filter.getInput(), scan);
+        }
+        if (node instanceof LogicalProject project) {
+            return hasOwnLabelPredicate(project.getInput(), scan);
+        }
+        return false;
+    }
+
+    private static PrometheusTableScan directScan(RelNode node) {
+        node = unwrap(node);
+        if (node instanceof PrometheusTableScan scan) {
+            return scan;
+        }
+        if (node instanceof LogicalFilter filter) {
+            return directScan(filter.getInput());
+        }
+        if (node instanceof LogicalProject project) {
+            return directScan(project.getInput());
+        }
+        return null;
+    }
+
+    private static String joinedLabelMessage(String sqlName, PrometheusTableScan scan, PrometheusTableScan other) {
+        Map.Entry<String, String> filter = other.getLabelFilters().isEmpty()
+                ? null
+                : other.getLabelFilters().entrySet().iterator().next();
+        String label = filter == null ? "code" : filter.getKey();
+        String stored = filter == null ? "ERROR" : filter.getValue();
+        boolean negated = stored.startsWith("!=");
+        String literal = negated ? stored.substring(2) : stored;
+        String operator = negated ? "<>" : "=";
+        return "Label " + label + " filters " + other.getPrometheusTable().metric()
+                + ", while " + sqlName + " is computed on " + scan.getPrometheusTable().metric()
+                + ". Move the comparison onto " + scan.getPrometheusTable().metric()
+                + ", the metric of the function: WHERE "
+                + label + " " + operator + " '" + literal + "'.";
+    }
+
+    private static RelNode stripValueFilters(RelNode node, Set<PrometheusTableScan> scans) {
+        if (scans.isEmpty()) {
+            return node;
+        }
+        node = unwrap(node);
+        if (node instanceof LogicalFilter filter) {
+            RelNode input = stripValueFilters(filter.getInput(), scans);
+            List<RexNode> keep = new ArrayList<>();
+            for (RexNode conjunct : RelOptUtil.conjunctions(filter.getCondition())) {
+                if (!strippedValue(conjunct, filter.getInput(), scans)) {
+                    keep.add(conjunct);
+                }
+            }
+            if (keep.isEmpty()) {
+                return input;
+            }
+            if (keep.size() == RelOptUtil.conjunctions(filter.getCondition()).size() && input == unwrap(filter.getInput())) {
+                return node;
+            }
+            return LogicalFilter.create(input, RexUtil.composeConjunction(filter.getCluster().getRexBuilder(), keep));
+        }
+        if (node instanceof LogicalProject project) {
+            RelNode input = stripValueFilters(project.getInput(), scans);
+            if (input == unwrap(project.getInput())) {
+                return node;
+            }
+            return project.copy(project.getTraitSet(), input, project.getProjects(), project.getRowType());
+        }
+        if (node instanceof LogicalJoin join) {
+            RelNode left = stripValueFilters(join.getLeft(), scans);
+            RelNode right = stripValueFilters(join.getRight(), scans);
+            if (left == unwrap(join.getLeft()) && right == unwrap(join.getRight())) {
+                return node;
+            }
+            return join.copy(join.getTraitSet(), join.getCondition(), left, right, join.getJoinType(), join.isSemiJoinDone());
+        }
+        if (node instanceof LogicalAggregate aggregate) {
+            RelNode input = stripValueFilters(aggregate.getInput(), scans);
+            if (input == unwrap(aggregate.getInput())) {
+                return node;
+            }
+            return aggregate.copy(aggregate.getTraitSet(), input, aggregate.getGroupSet(), aggregate.getGroupSets(), aggregate.getAggCallList());
+        }
+        return node;
+    }
+
+    private static boolean strippedValue(RexNode conjunct, RelNode scope, Set<PrometheusTableScan> scans) {
+        Comparison comparison = comparisonOf(conjunct);
+        if (comparison == null) {
+            return false;
+        }
+        Target target = resolve(scope, comparison.value.getIndex());
+        return target != null && target.column == 1 && scans.contains(target.scan);
     }
 
     private static boolean holtFactors(List<String> args) {

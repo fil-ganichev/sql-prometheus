@@ -33,6 +33,8 @@ public class PrometheusTableScan extends TableScan {
     private final List<String> innerScalars;
     private final List<String> scalars;
     private final PrometheusCallShape shape;
+    private final boolean collapseLatest;
+    private final String stepOverride;
 
     public PrometheusTableScan(RelOptCluster cluster,
                                RelTraitSet traitSet,
@@ -51,7 +53,9 @@ public class PrometheusTableScan extends TableScan {
                                List<String> aggBy,
                                List<String> innerScalars,
                                List<String> scalars,
-                               PrometheusCallShape shape) {
+                               PrometheusCallShape shape,
+                               boolean collapseLatest,
+                               String stepOverride) {
         super(cluster, traitSet, ImmutableList.of(), table);
         this.prometheusTable = prometheusTable;
         this.labelFilters = Map.copyOf(labelFilters);
@@ -68,6 +72,8 @@ public class PrometheusTableScan extends TableScan {
         this.innerScalars = innerScalars == null ? List.of() : List.copyOf(innerScalars);
         this.scalars = scalars == null ? List.of() : List.copyOf(scalars);
         this.shape = shape == null ? PrometheusCallShape.EMPTY : shape;
+        this.collapseLatest = collapseLatest;
+        this.stepOverride = stepOverride;
     }
 
     public static PrometheusTableScan create(RelOptCluster cluster,
@@ -91,7 +97,9 @@ public class PrometheusTableScan extends TableScan {
                 List.of(),
                 List.of(),
                 List.of(),
-                PrometheusCallShape.EMPTY);
+                PrometheusCallShape.EMPTY,
+                false,
+                null);
     }
 
     public PrometheusTable getPrometheusTable() {
@@ -178,10 +186,22 @@ public class PrometheusTableScan extends TableScan {
         return shape.spec();
     }
 
+    public boolean isCollapseLatest() {
+        return collapseLatest;
+    }
+
+    public String step() {
+        return stepOverride != null ? stepOverride : prometheusTable.options().step();
+    }
+
+    public String getStepOverride() {
+        return stepOverride;
+    }
+
     public PrometheusTableScan withFilters(Map<String, String> labelFilters, Long startMillis, Long endMillis) {
         Map<String, String> merged = new LinkedHashMap<>(this.labelFilters);
         merged.putAll(labelFilters);
-        return rebuild(getTraitSet(), merged, startMillis, endMillis, promFunction, promWindow, promArgs, rateWindow, quantilePhi, quantileBy, agg, aggBy, innerScalars, scalars, shape);
+        return rebuild(getTraitSet(), merged, startMillis, endMillis, promFunction, promWindow, promArgs, rateWindow, quantilePhi, quantileBy, agg, aggBy, innerScalars, scalars, shape, collapseLatest, stepOverride);
     }
 
     public PrometheusTableScan withFunction(String promFunction, String promWindow) {
@@ -214,16 +234,24 @@ public class PrometheusTableScan extends TableScan {
         String aggregation = agg != null ? agg : this.agg;
         List<String> by = agg != null ? (aggBy == null ? List.of() : aggBy) : this.aggBy;
         PrometheusCallShape nextShape = shape == null || shape.isEmpty() ? this.shape : shape;
-        return rebuild(getTraitSet(), labelFilters, startMillis, endMillis, function, window, args, rateWindow, quantilePhi, quantileBy, aggregation, by, mergedInner, merged, nextShape);
+        return rebuild(getTraitSet(), labelFilters, startMillis, endMillis, function, window, args, rateWindow, quantilePhi, quantileBy, aggregation, by, mergedInner, merged, nextShape, collapseLatest, stepOverride);
     }
 
     public PrometheusTableScan withRateWindow(String rateWindow) {
-        return rebuild(getTraitSet(), labelFilters, startMillis, endMillis, promFunction, promWindow, promArgs, rateWindow, quantilePhi, quantileBy, agg, aggBy, innerScalars, scalars, shape);
+        return rebuild(getTraitSet(), labelFilters, startMillis, endMillis, promFunction, promWindow, promArgs, rateWindow, quantilePhi, quantileBy, agg, aggBy, innerScalars, scalars, shape, collapseLatest, stepOverride);
     }
 
     public PrometheusTableScan withQuantile(String quantilePhi, List<String> quantileBy, String rateWindow) {
+        return withQuantile(quantilePhi, quantileBy, rateWindow, false, null);
+    }
+
+    public PrometheusTableScan withQuantile(String quantilePhi,
+                                            List<String> quantileBy,
+                                            String rateWindow,
+                                            boolean collapseLatest,
+                                            String stepOverride) {
         String window = rateWindow != null ? rateWindow : this.rateWindow;
-        return rebuild(getTraitSet(), labelFilters, startMillis, endMillis, promFunction, promWindow, promArgs, window, quantilePhi, quantileBy, agg, aggBy, innerScalars, scalars, shape);
+        return rebuild(getTraitSet(), labelFilters, startMillis, endMillis, promFunction, promWindow, promArgs, window, quantilePhi, quantileBy, agg, aggBy, innerScalars, scalars, shape, collapseLatest, stepOverride);
     }
 
     public String filterSpec() {
@@ -232,14 +260,19 @@ public class PrometheusTableScan extends TableScan {
             if (builder.length() > 0) {
                 builder.append('\n');
             }
-            builder.append(entry.getKey()).append('=').append(entry.getValue());
+            String stored = entry.getValue();
+            if (stored.startsWith("!=")) {
+                builder.append(entry.getKey()).append("!=").append(stored.substring(2));
+            } else {
+                builder.append(entry.getKey()).append('=').append(stored);
+            }
         }
         return builder.toString();
     }
 
     @Override
     public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
-        return rebuild(traitSet, labelFilters, startMillis, endMillis, promFunction, promWindow, promArgs, rateWindow, quantilePhi, quantileBy, agg, aggBy, innerScalars, scalars, shape);
+        return rebuild(traitSet, labelFilters, startMillis, endMillis, promFunction, promWindow, promArgs, rateWindow, quantilePhi, quantileBy, agg, aggBy, innerScalars, scalars, shape, collapseLatest, stepOverride);
     }
 
     private PrometheusTableScan rebuild(RelTraitSet traitSet,
@@ -256,7 +289,9 @@ public class PrometheusTableScan extends TableScan {
                                         List<String> aggBy,
                                         List<String> innerScalars,
                                         List<String> scalars,
-                                        PrometheusCallShape shape) {
+                                        PrometheusCallShape shape,
+                                        boolean collapseLatest,
+                                        String stepOverride) {
         return new PrometheusTableScan(
                 getCluster(),
                 traitSet,
@@ -275,13 +310,16 @@ public class PrometheusTableScan extends TableScan {
                 aggBy,
                 innerScalars,
                 scalars,
-                shape);
+                shape,
+                collapseLatest,
+                stepOverride);
     }
 
     @Override
     public RelWriter explainTerms(RelWriter pw) {
         return super.explainTerms(pw)
                 .itemIf("filters", labelFilters, !labelFilters.isEmpty())
+                .itemIf("defaultRange", "last 15m", startMillis == null && endMillis == null)
                 .itemIf("start", startMillis, startMillis != null)
                 .itemIf("end", endMillis, endMillis != null)
                 .itemIf("function", promFunction, promFunction != null)
@@ -289,6 +327,8 @@ public class PrometheusTableScan extends TableScan {
                 .itemIf("args", promArgSpec(), !promArgs.isEmpty())
                 .itemIf("range", rateWindow, rateWindow != null)
                 .itemIf("quantile", quantilePhi, quantilePhi != null)
+                .itemIf("collapse", collapseLatest, collapseLatest)
+                .itemIf("step", stepOverride, stepOverride != null)
                 .itemIf("sumBy", quantileBySpec(), quantilePhi != null)
                 .itemIf("inner", innerScalarSpec(), !innerScalars.isEmpty())
                 .itemIf("agg", agg, agg != null)

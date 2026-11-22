@@ -10,40 +10,54 @@ public final class PrometheusSqlFunctions {
     private PrometheusSqlFunctions() {
     }
 
-    public static double PROM_RATE(double value, String window) {
+    public static double PROM_RATE(double value, String window,
+                                   @Parameter(name = "step", optional = true) String step) {
         return notPushed("PROM_RATE", value, window);
     }
 
-    public static double PROM_IRATE(double value, String window) {
+    public static double PROM_IRATE(double value, String window,
+                                    @Parameter(name = "step", optional = true) String step) {
         return notPushed("PROM_IRATE", value, window);
     }
 
-    public static double PROM_INCREASE(double value, String window) {
+    public static double PROM_INCREASE(double value, String window,
+                                       @Parameter(name = "step", optional = true) String step) {
         return notPushed("PROM_INCREASE", value, window);
     }
 
-    public static double PROM_DELTA(double value, String window) {
+    public static double PROM_DELTA(double value, String window,
+                                    @Parameter(name = "step", optional = true) String step) {
         return notPushed("PROM_DELTA", value, window);
     }
 
-    public static double PROM_IDELTA(double value, String window) {
+    public static double PROM_IDELTA(double value, String window,
+                                     @Parameter(name = "step", optional = true) String step) {
         return notPushed("PROM_IDELTA", value, window);
     }
 
-    public static double PROM_CHANGES(double value, String window) {
+    public static double PROM_CHANGES(double value, String window,
+                                      @Parameter(name = "step", optional = true) String step) {
         return notPushed("PROM_CHANGES", value, window);
     }
 
-    public static double PROM_DERIV(double value, String window) {
+    public static double PROM_DERIV(double value, String window,
+                                    @Parameter(name = "step", optional = true) String step) {
         return notPushed("PROM_DERIV", value, window);
     }
 
-    public static double PROM_RESET(double value, String window) {
+    public static double PROM_RESET(double value, String window,
+                                    @Parameter(name = "step", optional = true) String step) {
         return notPushed("PROM_RESET", value, window);
     }
 
-    public static double PROM_MAD(double value, String window) {
+    public static double PROM_MAD(double value, String window,
+                                  @Parameter(name = "step", optional = true) String step) {
         return notPushed("PROM_MAD", value, window);
+    }
+
+    public static double PROM_HISTOGRAM_QUANTILE(double phi, String window) {
+        throw new IllegalStateException(
+                "PROM_HISTOGRAM_QUANTILE(" + phi + ", " + window + ") must be pushed into Prometheus");
     }
 
     public static double PROM_PREDICT_LINEAR(double value, String window, double seconds) {

@@ -130,6 +130,49 @@ public final class PrometheusSqlOperatorTable extends ChainedSqlOperatorTable {
         return digitsStart == text.length() && total > 0 ? total : -1;
     }
 
+    public static String promqlDuration(long millis) {
+        long duration = Math.abs(millis);
+        if (duration == 0) {
+            return null;
+        }
+        if (duration % 604_800_000L == 0) {
+            return (duration / 604_800_000L) + "w";
+        }
+        if (duration % 86_400_000L == 0) {
+            return (duration / 86_400_000L) + "d";
+        }
+        if (duration % 3_600_000L == 0) {
+            return (duration / 3_600_000L) + "h";
+        }
+        if (duration % 60_000L == 0) {
+            return (duration / 60_000L) + "m";
+        }
+        if (duration % 1_000L == 0) {
+            return (duration / 1_000L) + "s";
+        }
+        return duration + "ms";
+    }
+
+    /**
+     * A strict timestamp bound is one millisecond off a round duration. Snap back when the
+     * difference is under a second and a half, so {@code > now - 15 minutes} stays {@code 15m}.
+     */
+    public static String promqlSpan(long millis) {
+        long duration = Math.max(1L, millis);
+        long[] units = {604_800_000L, 86_400_000L, 3_600_000L, 60_000L, 1_000L};
+        for (long unit : units) {
+            if (duration + 1_500L < unit) {
+                continue;
+            }
+            long rounded = Math.round(duration / (double) unit) * unit;
+            if (rounded > 0 && Math.abs(rounded - duration) <= 1_500L) {
+                duration = rounded;
+                break;
+            }
+        }
+        return promqlDuration(duration);
+    }
+
     private static List<SqlFunction> functions() {
         List<SqlFunction> functions = new ArrayList<>();
         for (String name : RANGE.keySet().stream().sorted().toList()) {
@@ -144,6 +187,7 @@ public final class PrometheusSqlOperatorTable extends ChainedSqlOperatorTable {
         for (String name : AGGREGATE.keySet().stream().sorted().toList()) {
             functions.add(aggregate(name));
         }
+        functions.add(histogramQuantile());
         functions.add(offset());
         functions.add(rank("PROM_TOPK"));
         functions.add(rank("PROM_BOTTOMK"));
@@ -198,6 +242,37 @@ public final class PrometheusSqlOperatorTable extends ChainedSqlOperatorTable {
                 ReturnTypes.DOUBLE,
                 null,
                 QuantileOverTimeOperandChecker.INSTANCE,
+                SqlFunctionCategory.USER_DEFINED_FUNCTION);
+    }
+
+    private static SqlFunction histogramQuantile() {
+        return new SqlFunction(
+                "PROM_HISTOGRAM_QUANTILE",
+                SqlKind.OTHER_FUNCTION,
+                ReturnTypes.DOUBLE,
+                null,
+                new SqlOperandTypeChecker() {
+                    @Override
+                    public boolean checkOperandTypes(SqlCallBinding callBinding, boolean throwOnFailure) {
+                        BigDecimal phi = callBinding.isOperandLiteral(0, false)
+                                ? callBinding.getOperandLiteralValue(0, BigDecimal.class) : null;
+                        boolean ok = unitInterval(phi) && durationLiteral(callBinding, 1);
+                        if (!ok && throwOnFailure) {
+                            throw callBinding.newValidationSignatureError();
+                        }
+                        return ok;
+                    }
+
+                    @Override
+                    public SqlOperandCountRange getOperandCountRange() {
+                        return SqlOperandCountRanges.of(2);
+                    }
+
+                    @Override
+                    public String getAllowedSignatures(SqlOperator op, String opName) {
+                        return opName + "(<phi>, <duration literal>)";
+                    }
+                },
                 SqlFunctionCategory.USER_DEFINED_FUNCTION);
     }
 
@@ -265,26 +340,25 @@ public final class PrometheusSqlOperatorTable extends ChainedSqlOperatorTable {
 
         @Override
         public boolean checkOperandTypes(SqlCallBinding callBinding, boolean throwOnFailure) {
-            if (!OperandTypes.NUMERIC_CHARACTER.checkOperandTypes(callBinding, throwOnFailure)) {
-                return false;
+            int count = callBinding.getOperandCount();
+            boolean ok = (count == 2 || count == 3)
+                    && SqlTypeFamily.NUMERIC.contains(callBinding.getOperandType(0))
+                    && durationLiteral(callBinding, 1)
+                    && (count == 2 || durationLiteral(callBinding, 2));
+            if (!ok && throwOnFailure) {
+                throw callBinding.newValidationSignatureError();
             }
-            if (!callBinding.isOperandLiteral(1, false) || !validWindow(callBinding.getStringLiteralOperand(1))) {
-                if (throwOnFailure) {
-                    throw callBinding.newValidationSignatureError();
-                }
-                return false;
-            }
-            return true;
+            return ok;
         }
 
         @Override
         public SqlOperandCountRange getOperandCountRange() {
-            return SqlOperandCountRanges.of(2);
+            return SqlOperandCountRanges.between(2, 3);
         }
 
         @Override
         public String getAllowedSignatures(SqlOperator op, String opName) {
-            return opName + "(<numeric>, <duration literal>)";
+            return opName + "(<numeric>, <duration literal> [, <step>])";
         }
     }
 

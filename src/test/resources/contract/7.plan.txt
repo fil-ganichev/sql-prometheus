@@ -1,0 +1,10 @@
+operation_code_total cannot compute both PROM_MIN("value") and PROM_MAX("value") on one scan.
+SELECT PROM_MIN("value")
+FROM operation_code_total
+WHERE "timestamp" >= TIMESTAMP '2026-11-18 00:00:00'
+  AND "timestamp" <= TIMESTAMP '2026-11-18 01:00:00'
+
+SELECT PROM_MAX("value")
+FROM operation_code_total
+WHERE "timestamp" >= TIMESTAMP '2026-11-18 00:00:00'
+  AND "timestamp" <= TIMESTAMP '2026-11-18 01:00:00'

@@ -13,6 +13,7 @@ import org.apache.calcite.tools.RelConversionException;
 import org.apache.calcite.tools.ValidationException;
 import org.junit.jupiter.api.Test;
 import org.lokrusta.sqlprometheus.driver.PrometheusParserFactory;
+import org.lokrusta.sqlprometheus.exec.PercentileCont;
 import org.lokrusta.sqlprometheus.exec.PrometheusRowIterator;
 import org.lokrusta.sqlprometheus.plan.PrometheusPrograms;
 import org.lokrusta.sqlprometheus.schema.PrometheusSchema;
@@ -44,7 +45,7 @@ class PrometheusDriverTest {
                 c.image,
                 (SUM(c.value) / SUM(n.value)) * 100 AS cpu_percentage
             FROM container_cpu_usage_seconds_total c
-            JOIN node_cpu_seconds_total n ON c.instance = n.instance
+            JOIN node_cpu_seconds_total n ON c.instance = n.instance AND c.timestamp = n.timestamp
             WHERE c.timestamp > NOW() - INTERVAL '5' MINUTE
               AND c.image IS NOT NULL
             GROUP BY c.image
@@ -67,7 +68,7 @@ class PrometheusDriverTest {
         String sql = """
                 SELECT c.image, (SUM(c.value) / SUM(n.value)) * 100 AS cpu_percentage
                 FROM container_cpu_usage_seconds_total c
-                JOIN node_cpu_seconds_total n ON c.instance = n.instance
+                JOIN node_cpu_seconds_total n ON c.instance = n.instance AND c.timestamp = n.timestamp
                 WHERE c.timestamp > TIMESTAMP '2026-10-23 18:00:00'
                   AND c.timestamp < TIMESTAMP '2026-10-23 18:05:00'
                   AND c.image IS NOT NULL
@@ -110,6 +111,22 @@ class PrometheusDriverTest {
         } catch (RuntimeException thrown) {
             assertTrue(thrown.getMessage().contains("превышен лимит строк"), thrown.getMessage());
         }
+    }
+
+    @Test
+    void histogramInfBucketParsesAsInfinity() {
+        String json = "{\"status\":\"success\",\"data\":{\"resultType\":\"matrix\",\"result\":["
+                + "{\"metric\":{\"code\":\"SUCCESS\",\"le\":\"+Inf\"},\"values\":[[1,\"2.5\"]]},"
+                + "{\"metric\":{\"code\":\"SUCCESS\",\"le\":\"0.5\"},\"values\":[[1,\"1\"]]},"
+                + "{\"metric\":{\"code\":\"ERROR\",\"le\":\"-Inf\"},\"values\":[[1,\"NaN\"]]}"
+                + "]}}";
+        PrometheusRowIterator rows = PrometheusRowIterator.fromJson(json, List.of("code", "le"), 0, Long.MAX_VALUE);
+        Object[] positive = rows.next();
+        assertEquals(Double.POSITIVE_INFINITY, (Double) positive[3], 0.0);
+        assertEquals(0.5, (Double) rows.next()[3], 0.0);
+        Object[] negative = rows.next();
+        assertEquals(Double.NEGATIVE_INFINITY, (Double) negative[3], 0.0);
+        assertTrue(Double.isNaN((Double) negative[1]));
     }
 
     @Test
@@ -290,7 +307,7 @@ class PrometheusDriverTest {
                     AVG(PROM_RATE(c.value, '5m')) AS avg_rate,
                     AVG(n.value) AS avg_node
                 FROM container_cpu_usage_seconds_total c
-                JOIN node_cpu_seconds_total n ON c.instance = n.instance
+                JOIN node_cpu_seconds_total n ON c.instance = n.instance AND c.timestamp = n.timestamp
                 WHERE c.timestamp > NOW() - INTERVAL '5' MINUTE
                   AND c.image IS NOT NULL
                 GROUP BY c.image
@@ -327,7 +344,7 @@ class PrometheusDriverTest {
                     AVG(PROM_RATE(c.value, '5m')) AS avg_rate,
                     AVG(PROM_IRATE(n.value, '1m')) AS avg_node
                 FROM container_cpu_usage_seconds_total c
-                JOIN node_cpu_seconds_total n ON c.instance = n.instance
+                JOIN node_cpu_seconds_total n ON c.instance = n.instance AND c.timestamp = n.timestamp
                 WHERE c.timestamp > NOW() - INTERVAL '5' MINUTE
                 GROUP BY c.image
                 """;
@@ -396,7 +413,7 @@ class PrometheusDriverTest {
                        ABS(PERCENTILE_CONT(0.95) WITHIN GROUP (ORDER BY c.le)) AS p95,
                        AVG(n.value) AS avg_node
                 FROM http_request_duration_seconds_bucket c
-                JOIN node_cpu_seconds_total n ON c.instance = n.instance
+                JOIN node_cpu_seconds_total n ON c.instance = n.instance AND c.timestamp = n.timestamp
                 WHERE c.timestamp > NOW() - INTERVAL '5' MINUTE
                 GROUP BY c.service_name
                 """;
@@ -441,6 +458,7 @@ class PrometheusDriverTest {
                        PERCENTILE_CONT(0.95) WITHIN GROUP (ORDER BY c.le) AS p95
                 FROM http_request_duration_seconds_bucket c, node_cpu_seconds_total n
                 WHERE c.instance = n.instance
+                  AND c.timestamp = n.timestamp
                   AND c.timestamp > NOW() - INTERVAL '5' MINUTE
                 GROUP BY c.service_name
                 """;
@@ -464,6 +482,7 @@ class PrometheusDriverTest {
                        PERCENTILE_CONT(0.95) WITHIN GROUP (ORDER BY c.le) AS p95
                 FROM http_request_duration_seconds_bucket c, node_cpu_seconds_total n
                 WHERE c.instance > n.instance
+                  AND c.timestamp = n.timestamp
                   AND c.timestamp > NOW() - INTERVAL '5' MINUTE
                 GROUP BY c.service_name
                 """)));
@@ -474,7 +493,7 @@ class PrometheusDriverTest {
                 SELECT c.service_name,
                        PERCENTILE_CONT(0.95) WITHIN GROUP (ORDER BY c.le) AS p95
                 FROM http_request_duration_seconds_bucket c
-                JOIN node_cpu_seconds_total n ON c.instance >= n.instance
+                JOIN node_cpu_seconds_total n ON c.instance >= n.instance AND c.timestamp = n.timestamp
                 WHERE c.timestamp > NOW() - INTERVAL '5' MINUTE
                 GROUP BY c.service_name
                 """)));
@@ -498,6 +517,7 @@ class PrometheusDriverTest {
                        PERCENTILE_CONT(0.95) WITHIN GROUP (ORDER BY c.le) AS p95
                 FROM http_request_duration_seconds_bucket c, node_cpu_seconds_total n
                 WHERE c.instance > n.instance
+                  AND c.timestamp = n.timestamp
                   AND c.timestamp > NOW() - INTERVAL '5' MINUTE
                 GROUP BY c.service_name, c.instance
                 """));
@@ -510,7 +530,7 @@ class PrometheusDriverTest {
         String joined = pushedPlan(logicalPlan("""
                 SELECT c.image, PROM_SUM(PROM_RATE(c."value", '5m'))
                 FROM container_cpu_usage_seconds_total c
-                JOIN node_cpu_seconds_total n ON c.instance = n.instance
+                JOIN node_cpu_seconds_total n ON c.instance = n.instance AND c.timestamp = n.timestamp
                 WHERE c.timestamp > NOW() - INTERVAL '5' MINUTE
                 """));
         assertTrue(joined.contains("function=[rate]"), joined);
@@ -527,7 +547,7 @@ class PrometheusDriverTest {
         List<String> queries = prometheusQueries("""
                 SELECT c.image, PROM_SUM(PROM_RATE(c."value", '5m'))
                 FROM container_cpu_usage_seconds_total c
-                JOIN node_cpu_seconds_total n ON c.instance = n.instance
+                JOIN node_cpu_seconds_total n ON c.instance = n.instance AND c.timestamp = n.timestamp
                 WHERE c.timestamp > TIMESTAMP '2026-01-01 00:00:00'
                 """, false);
         assertTrue(queries.stream().anyMatch(query -> query.contains(
@@ -761,23 +781,31 @@ class PrometheusDriverTest {
                 {"PROM_HOLT_WINTERS_WHEN", "PROM_HOLT_WINTERS_WHEN(\"value\" > 1, '5m', 0.5, 0.1)", "second time"}
         };
         for (String[] call : calls) {
-            IllegalStateException error = assertThrows(IllegalStateException.class, () -> pushedPlan(logicalPlan("""
-                    SELECT %s
-                    FROM node_cpu_seconds_total
-                    WHERE mode = 'idle'
-                      AND "value" > 1
-                      AND "timestamp" > TIMESTAMP '2026-01-01 00:00:00'
-                    """.formatted(call[1]))), call[0]);
-            assertTrue(error.getMessage().contains(call[2]), error.getMessage());
-            if (!call[0].endsWith("_WHEN")) {
-                assertTrue(error.getMessage().contains("cannot share a scan"), error.getMessage());
-                assertTrue(error.getMessage().contains("filter the alias"), error.getMessage());
-            } else {
+            if (call[0].endsWith("_WHEN")) {
+                IllegalStateException error = assertThrows(IllegalStateException.class, () -> pushedPlan(logicalPlan("""
+                        SELECT %s
+                        FROM node_cpu_seconds_total
+                        WHERE mode = 'idle'
+                          AND "value" > 1
+                          AND "timestamp" > TIMESTAMP '2026-01-01 00:00:00'
+                        """.formatted(call[1]))), call[0]);
                 assertTrue(error.getMessage().contains("already compares"), error.getMessage());
+                assertTrue(error.getMessage().contains(call[2]), error.getMessage());
+            } else {
+                String plan = pushedPlan(logicalPlan("""
+                        SELECT %s
+                        FROM node_cpu_seconds_total
+                        WHERE mode = 'idle'
+                          AND "value" > 1
+                          AND "timestamp" > TIMESTAMP '2026-01-01 00:00:00'
+                        """.formatted(call[1])));
+                assertTrue(plan.contains("args=[> 1"), plan);
+                assertTrue(plan.contains(":15s"), plan);
+                assertFalse(plan.contains("LogicalFilter"), plan);
             }
         }
 
-        IllegalStateException nested = assertThrows(IllegalStateException.class, () -> pushedPlan(logicalPlan("""
+        String nested = pushedPlan(logicalPlan("""
                 SELECT PROM_RATE("value", '5m')
                 FROM (
                     SELECT "value", "timestamp"
@@ -785,8 +813,9 @@ class PrometheusDriverTest {
                     WHERE "value" > 1
                       AND "timestamp" > TIMESTAMP '2026-01-01 00:00:00'
                 ) t
-                """)));
-        assertTrue(nested.getMessage().contains("PROM_RATE_WHEN"), nested.getMessage());
+                """));
+        assertTrue(nested.contains("args=[> 1]"), nested);
+        assertTrue(nested.contains(":15s"), nested);
 
         IllegalStateException wideStep = assertThrows(IllegalStateException.class, () -> pushedPlan(logicalPlan("""
                 SELECT PROM_RATE_WHEN("value" > 1, '5m', '5m')
@@ -805,17 +834,15 @@ class PrometheusDriverTest {
     }
 
     @Test
-    void valuePredicateBesideWindowFunctionReachesJdbc() {
-        SQLException executed = assertThrows(SQLException.class, () -> prometheusQueries("""
+    void valuePredicateBesideWindowFunctionReachesJdbc() throws Exception {
+        List<String> queries = prometheusQueries("""
                 SELECT PROM_DELTA("value", '5m')
                 FROM node_cpu_seconds_total
                 WHERE "value" > 1
                   AND "timestamp" > TIMESTAMP '2026-01-01 00:00:00'
-                """));
-        String text = causes(executed);
-        assertTrue(text.contains("PROM_DELTA cannot share a scan"), text);
-        assertTrue(text.contains("PROM_DELTA_WHEN"), text);
-        assertTrue(text.contains("filter the alias"), text);
+                """, false);
+        assertTrue(queries.get(0).contains("delta((node_cpu_seconds_total{mode=\"idle\"} > 1)[5m:15s])")
+                || queries.get(0).contains("delta((node_cpu_seconds_total > 1)[5m:15s])"), queries.get(0));
     }
 
     private static String causes(Throwable error) {
@@ -840,7 +867,7 @@ class PrometheusDriverTest {
     }
 
     @Test
-    void percentileWithoutIntervalExplainsHowToSetTheWindow() throws Exception {
+    void percentileWithoutIntervalUsesTheQueryRange() throws Exception {
         String sql = """
                 SELECT service_name,
                        PERCENTILE_CONT(0.95) WITHIN GROUP (ORDER BY le) AS p95
@@ -848,17 +875,20 @@ class PrometheusDriverTest {
                 WHERE "timestamp" > TIMESTAMP '2026-01-01 00:00:00'
                 GROUP BY service_name
                 """;
-        IllegalStateException planned = assertThrows(IllegalStateException.class, () -> pushedPlan(logicalPlan(sql)));
-        assertTrue(planned.getMessage().contains("INTERVAL '5' MINUTE"), planned.getMessage());
+        String afterPlan = pushedPlan(logicalPlan(sql));
+        assertTrue(afterPlan.contains("quantile=[0.95]"), afterPlan);
+        assertTrue(afterPlan.contains("range=["), afterPlan);
+        assertTrue(afterPlan.contains("collapse"), afterPlan);
 
-        SQLException executed = assertThrows(SQLException.class, () -> prometheusQueries(sql));
-        StringBuilder text = new StringBuilder();
-        for (Throwable current = executed; current != null; current = current.getCause()) {
-            if (current.getMessage() != null) {
-                text.append(current.getMessage()).append('\n');
-            }
-        }
-        assertTrue(text.toString().contains("INTERVAL '5' MINUTE"), text.toString());
+        String query = prometheusQueries(sql).get(0);
+        assertTrue(query.contains("histogram_quantile"), query);
+    }
+
+    @Test
+    void percentileContInterpolatesSortedValues() {
+        assertEquals(2.5, PercentileCont.continuous(List.of(1.0, 2.0, 3.0, 4.0), 0.5), 1e-9);
+        assertEquals(3.85, PercentileCont.continuous(List.of(4.0, 1.0, 3.0, 2.0), 0.95), 1e-9);
+        assertEquals(2.5, PercentileCont.continuous(List.of(2.5), 0.95), 1e-9);
     }
 
     @Test
@@ -1049,11 +1079,12 @@ class PrometheusDriverTest {
                 """)));
         assertTrue(wideStep.getMessage().contains("must be shorter than the subquery window"), wideStep.getMessage());
 
-        IllegalStateException rawStep = assertThrows(IllegalStateException.class, () -> pushedPlan(logicalPlan("""
+        String rawStep = pushedPlan(logicalPlan("""
                 SELECT PROM_AVG_OVER_TIME("value", '5m', '15s')
                 FROM node_cpu_seconds_total
-                """)));
-        assertTrue(rawStep.getMessage().contains("step is only used when"), rawStep.getMessage());
+                """));
+        assertTrue(rawStep.contains("function=[avg_over_time]"), rawStep);
+        assertTrue(rawStep.contains("window=[5m:15s]"), rawStep);
 
         assertThrows(ValidationException.class, () -> logicalPlan("""
                 SELECT PROM_QUANTILE_OVER_TIME("value", '5m', 1.5)
@@ -1064,14 +1095,15 @@ class PrometheusDriverTest {
                 FROM node_cpu_seconds_total
                 """));
 
-        IllegalStateException filtered = assertThrows(IllegalStateException.class, () -> pushedPlan(logicalPlan("""
+        String filtered = pushedPlan(logicalPlan("""
                 SELECT PROM_AVG_OVER_TIME("value", '5m')
                 FROM node_cpu_seconds_total
                 WHERE "value" > 1
                   AND "timestamp" > TIMESTAMP '2026-01-01 00:00:00'
-                """)));
-        assertTrue(filtered.getMessage().contains("PROM_AVG_OVER_TIME_WHEN"), filtered.getMessage());
-        assertTrue(filtered.getMessage().contains("cannot share a scan"), filtered.getMessage());
+                """));
+        assertTrue(filtered.contains("function=[avg_over_time]"), filtered);
+        assertTrue(filtered.contains("args=[> 1]"), filtered);
+        assertTrue(filtered.contains("window=[5m:15s]"), filtered);
     }
 
     private static String queryParameter(String query, String name) {

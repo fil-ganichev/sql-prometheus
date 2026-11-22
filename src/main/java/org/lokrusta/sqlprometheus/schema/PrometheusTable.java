@@ -106,7 +106,7 @@ public class PrometheusTable extends AbstractTable implements ScannableTable, Tr
     public Enumerable<Object[]> scan(DataContext root) {
         return query(baseUrl, metric, String.join(",", labelColumns), "", null, null,
                 options.maxRows(), options.step(), options.connectTimeoutSeconds(), options.queryTimeoutSeconds(),
-                null, null, null, null, null, null, null, null, null, null, null);
+                null, null, null, null, null, null, null, null, null, null, null, false);
     }
 
     @Override
@@ -134,7 +134,8 @@ public class PrometheusTable extends AbstractTable implements ScannableTable, Tr
                                              String innerScalars,
                                              String agg,
                                              String aggBy,
-                                             String callShape) {
+                                             String callShape,
+                                             boolean collapseLatest) {
         long end = endMillis != null ? endMillis : System.currentTimeMillis();
         long start = startMillis != null ? startMillis : end - DEFAULT_RANGE_MILLIS;
         List<String> columns = labelColumns == null || labelColumns.isEmpty()
@@ -148,7 +149,7 @@ public class PrometheusTable extends AbstractTable implements ScannableTable, Tr
                         baseUrl, metric, columns, labelFilters, start, end, maxRows,
                         step, connectTimeoutSeconds, queryTimeoutSeconds,
                         promFunction, promWindow, promArgs, rateWindow, quantilePhi, quantileBy, scalars, innerScalars, agg, aggBy,
-                        callShape);
+                        callShape, collapseLatest);
                 return new Enumerator<>() {
                     private Object[] current;
 
@@ -185,9 +186,12 @@ public class PrometheusTable extends AbstractTable implements ScannableTable, Tr
             return decoded;
         }
         for (String entry : filters.split("\n")) {
-            int separator = entry.indexOf('=');
-            if (separator > 0) {
-                decoded.put(entry.substring(0, separator), entry.substring(separator + 1));
+            int equals = entry.indexOf('=');
+            int notEquals = entry.indexOf("!=");
+            if (notEquals >= 0 && equals == notEquals + 1) {
+                decoded.put(entry.substring(0, notEquals), "!=" + entry.substring(equals + 1));
+            } else if (equals > 0) {
+                decoded.put(entry.substring(0, equals), entry.substring(equals + 1));
             }
         }
         return decoded;

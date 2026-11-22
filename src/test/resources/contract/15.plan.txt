@@ -1,0 +1,5 @@
+LogicalProject(process_action=[$0], v=[$3], value=[$5])
+  LogicalJoin(condition=[AND(=($6, $0), =($7, $1), =($4, $2))], joinType=[inner])
+    LogicalProject(process_action=[$2], code=[$3], timestamp=[$0], v=[$1])
+      PrometheusTableScan(table=[[prometheus, operation_code_total]], filters=[{code=SUCCESS}], start=[1794960000001], end=[1794963600000], function=[rate], window=[5m])
+    PrometheusTableScan(table=[[prometheus, operation_time_seconds_count]], start=[1794960000001], end=[1794963600000])

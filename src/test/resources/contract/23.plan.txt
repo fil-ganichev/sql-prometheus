@@ -1,0 +1,2 @@
+LogicalProject(timestamp=[$0], value=[$1])
+  PrometheusTableScan(table=[[prometheus, operation_code_total]], filters=[{code=SUCCESS, process_action=getOrder}], start=[1794960000001], end=[1794963600000])

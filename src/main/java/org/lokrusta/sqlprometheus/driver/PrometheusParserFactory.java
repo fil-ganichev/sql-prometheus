@@ -1,6 +1,7 @@
 package org.lokrusta.sqlprometheus.driver;
 
 import org.apache.calcite.sql.SqlCall;
+import org.apache.calcite.sql.SqlExplain;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlJoin;
 import org.apache.calcite.sql.SqlNode;
@@ -39,6 +40,10 @@ public final class PrometheusParserFactory implements SqlParserImplFactory {
     }
 
     private static final Pattern RESERVED_COLUMN = Pattern.compile("(?i)(\\.)(\\s*)(value|timestamp)\\b");
+    private static final Pattern TIME_UNIT_ALIAS = Pattern.compile(
+            "(?i)\\bAS(\\s+)(second|minute|hour|day|week|month|quarter|year)\\b");
+    private static final Pattern UNQUOTED_VALUE = Pattern.compile("(?i)(?<![\\w.\"])value\\b");
+    private static final Pattern UNQUOTED_TIMESTAMP = Pattern.compile("(?i)(?<![\\w.\"])timestamp\\b(?!\\s*')");
 
     /**
      * Calcite reserves {@code VALUE} and {@code TIMESTAMP}, so {@code c.value} is not an identifier.
@@ -69,7 +74,33 @@ public final class PrometheusParserFactory implements SqlParserImplFactory {
             last = matcher.end();
         }
         quoted.append(source, last, source.length());
-        return new StringReader(quoted.toString());
+        String prepared = quoteTimeUnitAlias(quoted.toString());
+        if (UNQUOTED_VALUE.matcher(prepared).find() || UNQUOTED_TIMESTAMP.matcher(prepared).find()) {
+            throw new IllegalStateException(
+                    "Write value and timestamp in double quotes: \"value\", \"timestamp\".");
+        }
+        return new StringReader(prepared);
+    }
+
+    /**
+     * {@code HOUR} and the other time units are reserved, so {@code AS hour} is not an identifier.
+     * {@code TO HOUR} stays a unit. Only the alias is quoted.
+     */
+    private static String quoteTimeUnitAlias(String sql) {
+        Matcher matcher = TIME_UNIT_ALIAS.matcher(sql);
+        StringBuilder quoted = new StringBuilder();
+        int last = 0;
+        while (matcher.find()) {
+            quoted.append(sql, last, matcher.start());
+            quoted.append("AS")
+                    .append(matcher.group(1))
+                    .append('"')
+                    .append(matcher.group(2))
+                    .append('"');
+            last = matcher.end();
+        }
+        quoted.append(sql, last, sql.length());
+        return quoted.toString();
     }
 
     public static final class PrometheusSqlParser extends SqlParserImpl {
@@ -109,7 +140,9 @@ public final class PrometheusParserFactory implements SqlParserImplFactory {
     }
 
     private static void collect(SqlNode node, Set<String> tables) {
-        if (node instanceof SqlSelect select) {
+        if (node instanceof SqlExplain explain) {
+            collect(explain.getExplicandum(), tables);
+        } else if (node instanceof SqlSelect select) {
             collectFrom(select.getFrom(), tables);
         } else if (node instanceof SqlOrderBy orderBy) {
             collect(orderBy.query, tables);

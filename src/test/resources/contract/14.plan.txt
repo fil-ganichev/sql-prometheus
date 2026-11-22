@@ -1,0 +1,6 @@
+LogicalProject(timestamp=[$0], process_action=[$2])
+  LogicalJoin(condition=[AND(=($10, $2), =($11, $3), =($8, $0))], joinType=[inner])
+    LogicalJoin(condition=[AND(=($2, $6), =($3, $7), =($0, $4))], joinType=[inner])
+      PrometheusTableScan(table=[[prometheus, operation_code_total]], filters=[{code=SUCCESS}], start=[1794960000001], end=[1794960900000])
+      PrometheusTableScan(table=[[prometheus, operation_time_seconds_count]], start=[1794960000001], end=[1794960900000])
+    PrometheusTableScan(table=[[prometheus, operation_time_seconds_bucket]], start=[1794960000001], end=[1794960900000])

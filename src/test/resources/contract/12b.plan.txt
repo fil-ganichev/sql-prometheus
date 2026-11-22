@@ -1,0 +1,4 @@
+PERCENTILE_CONT cannot apply > to le because histogram_quantile does not return that column.
+Drop that comparison. ORDER BY le marks the bucket:
+SELECT PERCENTILE_CONT(phi) WITHIN GROUP (ORDER BY le)
+FROM operation_time_seconds_bucket

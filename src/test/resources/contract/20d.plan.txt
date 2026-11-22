@@ -1,0 +1,10 @@
+SUM cannot fold the Prometheus aggregate PROM_SUM on operation_code_total.
+SUM(PROM_SUM("value")) aggregates series that Prometheus already folded.
+SELECT SUM(PROM_RATE("value", '5m')) FROM operation_code_total
+WHERE code = 'SUCCESS'
+  AND "timestamp" >= TIMESTAMP '2026-11-18 00:00:00'
+  AND "timestamp" <= TIMESTAMP '2026-11-18 01:00:00'
+SELECT PROM_SUM("value") FROM operation_code_total
+WHERE code = 'SUCCESS'
+  AND "timestamp" >= TIMESTAMP '2026-11-18 00:00:00'
+  AND "timestamp" <= TIMESTAMP '2026-11-18 01:00:00'

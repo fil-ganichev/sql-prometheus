@@ -28,6 +28,7 @@ public final class PrometheusPrograms {
                 .addGroupBegin()
                 .addRuleInstance(PrometheusPushRules.PROJECT_FILTER)
                 .addRuleInstance(PrometheusPushRules.JOIN_FILTER)
+                .addRuleInstance(PrometheusPushRules.JOIN_ON)
                 .addRuleInstance(PrometheusFilterRule.INSTANCE)
                 .addGroupEnd()
                 .addGroupBegin()
@@ -36,6 +37,7 @@ public final class PrometheusPrograms {
                 .addGroupBegin()
                 .addRuleInstance(PrometheusQuantilePushDownRule.INSTANCE)
                 .addRuleInstance(PrometheusFunctionPushDownRule.INSTANCE)
+                .addRuleInstance(PrometheusPushRules.SQL_OVER_PROM)
                 .addGroupEnd()
                 .build();
     }

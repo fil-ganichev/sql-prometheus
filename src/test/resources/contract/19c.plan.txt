@@ -1,0 +1,7 @@
+PROM_IRATE("value", '5m') on operation_code_total cannot push this label condition into a Prometheus selector.
+process_action LIKE 'get%'
+A selector accepts label = string and label <> string combined with AND. OR, LIKE and a comparison of two labels do not fit one selector. To filter before the function, replace a pattern with the concrete equalities yourself and write one SELECT per equality, combined with UNION.
+The function then runs on all series, and the condition filters an alias of the result:
+  SELECT * FROM (SELECT PROM_IRATE("value", '5m') AS v, process_action FROM operation_code_total
+WHERE "timestamp" >= TIMESTAMP '2026-11-18 00:00:00'
+  AND "timestamp" <= TIMESTAMP '2026-11-18 01:00:00') t WHERE process_action LIKE 'get%'

@@ -1,0 +1,3 @@
+JOIN of operation_code_total and operation_time_seconds_count has no equality on "timestamp". Rows at different times multiply.
+Add the equality to this join:
+ON operation_code_total."timestamp" = operation_time_seconds_count."timestamp".

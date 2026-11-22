@@ -32,3 +32,6 @@ out/
 
 # Локальные заметки
 .tmpdoc/
+
+# Правила Cursor
+.cursor/

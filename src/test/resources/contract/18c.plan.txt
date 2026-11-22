@@ -1,0 +1,13 @@
+PROM_MAX_OVER_TIME("value", '5m') on operation_code_total cannot push this label condition into a Prometheus selector.
+code = 'SUCCESS' OR process_action = 'getOrder'
+SELECT PROM_MAX_OVER_TIME("value", '5m') AS v, code, process_action
+FROM operation_code_total
+WHERE code = 'SUCCESS'
+  AND "timestamp" >= TIMESTAMP '2026-11-18 00:00:00'
+  AND "timestamp" <= TIMESTAMP '2026-11-18 01:00:00'
+UNION
+SELECT PROM_MAX_OVER_TIME("value", '5m') AS v, code, process_action
+FROM operation_code_total
+WHERE process_action = 'getOrder'
+  AND "timestamp" >= TIMESTAMP '2026-11-18 00:00:00'
+  AND "timestamp" <= TIMESTAMP '2026-11-18 01:00:00'

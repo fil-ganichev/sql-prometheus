@@ -63,7 +63,9 @@ public final class PrometheusClient {
                             .build(),
                     HttpResponse.BodyHandlers.ofString());
             if (response.statusCode() != 200) {
-                throw new IllegalStateException("Prometheus HTTP " + response.statusCode() + ": " + response.body());
+                String function = promFunction == null || promFunction.isEmpty() ? "" : " (" + promFunction + ")";
+                throw new IllegalStateException(
+                        "Prometheus HTTP " + response.statusCode() + ": " + response.body() + function);
             }
             return response.body();
         } catch (InterruptedException e) {
@@ -138,7 +140,7 @@ public final class PrometheusClient {
         String series = metric;
         if (labelFilters != null && !labelFilters.isEmpty()) {
             String labels = labelFilters.entrySet().stream()
-                    .map(entry -> entry.getKey() + "=\"" + escape(entry.getValue()) + "\"")
+                    .map(entry -> labelMatcher(entry.getKey(), entry.getValue()))
                     .collect(Collectors.joining(","));
             series = metric + "{" + labels + "}";
         }
@@ -213,6 +215,13 @@ public final class PrometheusClient {
             return token.substring(2) + "(" + core + ")";
         }
         throw new IllegalStateException("Prometheus call shape is invalid");
+    }
+
+    static String labelMatcher(String name, String stored) {
+        if (stored != null && stored.startsWith("!=")) {
+            return name + "!=\"" + escape(stored.substring(2)) + "\"";
+        }
+        return name + "=\"" + escape(stored) + "\"";
     }
 
     private static String applyAggregate(String core, String agg, String aggBy) {

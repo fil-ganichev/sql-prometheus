@@ -1,5 +1,6 @@
 package org.lokrusta.sqlprometheus.rel;
 
+import org.apache.calcite.avatica.util.TimeUnitRange;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.RelRule;
@@ -18,9 +19,20 @@ import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.schema.impl.AggregateFunctionImpl;
+import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
+import org.apache.calcite.sql.parser.SqlParserPos;
+import org.apache.calcite.sql.type.InferTypes;
+import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.sql.validate.SqlUserDefinedAggFunction;
+import org.apache.calcite.util.Optionality;
+import org.lokrusta.sqlprometheus.exec.PercentileCont;
+import org.lokrusta.sqlprometheus.schema.PrometheusTable;
+import org.lokrusta.sqlprometheus.sql.PrometheusSqlOperatorTable;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -62,18 +74,48 @@ public class PrometheusQuantilePushDownRule extends RelRule<RelRule.Config> {
         }
         Quantile quantile = null;
         boolean otherAggregate = false;
+        boolean sawLocal = false;
+        List<AggregateCall> rewritten = new ArrayList<>();
         for (AggregateCall aggCall : aggregate.getAggCallList()) {
-            if (!isPercentileCont(aggCall)) {
-                otherAggregate = true;
+            if (!isPercentileCont(aggCall) || aggCall.getAggregation() instanceof SqlUserDefinedAggFunction) {
+                if (!isPercentileCont(aggCall)) {
+                    otherAggregate = true;
+                }
+                rewritten.add(aggCall);
                 continue;
             }
             Quantile parsed = parse(aggregate, aggCall);
-            if (parsed == null || quantile != null) {
-                return;
+            if (parsed == null) {
+                if (ordersByLe(aggregate, aggCall)) {
+                    return;
+                }
+                AggregateCall local = localPercentile(aggregate, aggCall);
+                if (local == null) {
+                    return;
+                }
+                rewritten.add(local);
+                sawLocal = true;
+                continue;
+            }
+            if (quantile != null) {
+                throw new IllegalStateException(parsed.scan.getPrometheusTable().metric()
+                        + " cannot compute two PERCENTILE_CONT calls. Use one percentile, or read the metric twice.");
             }
             quantile = parsed;
+            rewritten.add(aggCall);
+        }
+        if (quantile != null && sawLocal) {
+            return;
         }
         if (quantile == null) {
+            if (sawLocal) {
+                call.transformTo(aggregate.copy(
+                        aggregate.getTraitSet(),
+                        aggregate.getInput(),
+                        aggregate.getGroupSet(),
+                        aggregate.getGroupSets(),
+                        rewritten));
+            }
             return;
         }
         rejectUnavailable(aggregate.getInput(), quantile.scan, quantile.sumBy);
@@ -81,7 +123,8 @@ public class PrometheusQuantilePushDownRule extends RelRule<RelRule.Config> {
         if (carried == null) {
             return;
         }
-        PrometheusTableScan pushed = quantile.scan.withQuantile(quantile.phi, quantile.sumBy, quantile.rateWindow);
+        PrometheusTableScan pushed = quantile.scan.withQuantile(
+                quantile.phi, quantile.sumBy, quantile.rateWindow, quantile.collapse, quantile.step);
         Map<PrometheusTableScan, PrometheusTableScan> replacements = new IdentityHashMap<>();
         replacements.put(quantile.scan, pushed);
         RelNode input = replaceScans(carried.node, replacements);
@@ -109,6 +152,61 @@ public class PrometheusQuantilePushDownRule extends RelRule<RelRule.Config> {
         return "PERCENTILE_CONT".equalsIgnoreCase(call.getAggregation().getName());
     }
 
+    private static final AggregateFunctionImpl LOCAL_PERCENTILE = localPercentileFunction();
+
+    private static AggregateFunctionImpl localPercentileFunction() {
+        AggregateFunctionImpl function = AggregateFunctionImpl.create(PercentileCont.class);
+        if (function == null) {
+            throw new IllegalStateException("PERCENTILE_CONT accumulator was not created");
+        }
+        return function;
+    }
+
+    private static SqlUserDefinedAggFunction localPercentileOperator(RelDataType type) {
+        return new SqlUserDefinedAggFunction(
+                new SqlIdentifier("PERCENTILE_CONT", SqlParserPos.ZERO),
+                SqlKind.OTHER_FUNCTION,
+                ReturnTypes.explicit(type),
+                InferTypes.FIRST_KNOWN,
+                null,
+                LOCAL_PERCENTILE,
+                false,
+                false,
+                Optionality.IGNORED);
+    }
+
+    private static boolean ordersByLe(LogicalAggregate aggregate, AggregateCall call) {
+        RelCollation collation = call.getCollation();
+        if (collation == null || collation.getFieldCollations().size() != 1) {
+            return false;
+        }
+        Target ordered = resolve(aggregate.getInput(), collation.getFieldCollations().get(0).getFieldIndex());
+        if (ordered == null) {
+            return false;
+        }
+        String name = ordered.scan.getRowType().getFieldNames().get(ordered.column);
+        return "le".equalsIgnoreCase(name);
+    }
+
+    private static AggregateCall localPercentile(LogicalAggregate aggregate, AggregateCall call) {
+        RelCollation collation = call.getCollation();
+        if (collation == null || collation.getFieldCollations().size() != 1 || call.getArgList().size() != 1) {
+            return null;
+        }
+        int phi = call.getArgList().get(0);
+        int ordered = collation.getFieldCollations().get(0).getFieldIndex();
+        return AggregateCall.create(
+                localPercentileOperator(call.getType()),
+                false,
+                false,
+                false,
+                List.of(phi, ordered),
+                -1,
+                RelCollations.EMPTY,
+                call.getType(),
+                call.name);
+    }
+
     private static Quantile parse(LogicalAggregate aggregate, AggregateCall call) {
         String phi = phiOf(aggregate, call);
         RelCollation collation = call.getCollation();
@@ -124,12 +222,91 @@ public class PrometheusQuantilePushDownRule extends RelRule<RelRule.Config> {
         if (!"le".equalsIgnoreCase(orderedName)) {
             return null;
         }
-        if (le.scan.getRateWindow() == null) {
-            throw new IllegalStateException(
-                    "PERCENTILE_CONT requires an INTERVAL on the timestamp predicate so histogram_quantile gets a rate window. "
-                            + "For example: WHERE \"timestamp\" > NOW() - INTERVAL '5' MINUTE");
+        String floor = floorWindow(aggregate, le.scan);
+        String window = floor != null
+                ? floor
+                : spanWindow(le.scan.getStartMillis(), le.scan.getEndMillis());
+        if (window == null) {
+            window = "15m";
         }
-        return new Quantile(call, le.scan, phi, sumBy(aggregate, le.scan), le.scan.getRateWindow(), -1);
+        return new Quantile(call, le.scan, phi, sumBy(aggregate, le.scan), window, -1, floor == null, window);
+    }
+
+    private static String floorWindow(LogicalAggregate aggregate, PrometheusTableScan scan) {
+        RelNode input = unwrap(aggregate.getInput());
+        RelNode refScope = input;
+        if (input instanceof LogicalFilter filter) {
+            refScope = unwrap(filter.getInput());
+        }
+        if (refScope instanceof LogicalProject project) {
+            refScope = project.getInput();
+        }
+        String found = null;
+        for (int group : aggregate.getGroupSet()) {
+            String window = floorOf(groupExpression(aggregate.getInput(), group), refScope, scan);
+            if (window == null) {
+                continue;
+            }
+            if (found != null && !found.equals(window)) {
+                throw new IllegalStateException(
+                        "PERCENTILE_CONT accepts one FLOOR(\"timestamp\" TO unit) in GROUP BY. "
+                                + "The unit must be SECOND, MINUTE, HOUR, DAY or WEEK.");
+            }
+            found = window;
+        }
+        return found;
+    }
+
+    private static RexNode groupExpression(RelNode input, int index) {
+        input = unwrap(input);
+        if (input instanceof LogicalProject project && index >= 0 && index < project.getProjects().size()) {
+            return project.getProjects().get(index);
+        }
+        if (input instanceof LogicalFilter filter) {
+            return groupExpression(filter.getInput(), index);
+        }
+        return null;
+    }
+
+    private static String floorOf(RexNode node, RelNode refScope, PrometheusTableScan scan) {
+        if (node instanceof RexCall call && call.getKind() == SqlKind.CAST && !call.getOperands().isEmpty()) {
+            return floorOf(call.getOperands().get(0), refScope, scan);
+        }
+        if (!(node instanceof RexCall call) || call.getKind() != SqlKind.FLOOR || call.getOperands().size() != 2) {
+            return null;
+        }
+        RexNode argument = call.getOperands().get(0);
+        if (argument instanceof RexCall cast && cast.getKind() == SqlKind.CAST && !cast.getOperands().isEmpty()) {
+            argument = cast.getOperands().get(0);
+        }
+        if (!(argument instanceof RexInputRef ref)) {
+            return null;
+        }
+        Target target = resolve(refScope, ref.getIndex());
+        if (target == null || target.scan != scan || target.column != 0) {
+            return null;
+        }
+        if (!(call.getOperands().get(1) instanceof RexLiteral literal) || !(literal.getValue() instanceof TimeUnitRange unit)) {
+            return null;
+        }
+        return switch (unit) {
+            case SECOND -> "1s";
+            case MINUTE -> "1m";
+            case HOUR -> "1h";
+            case DAY -> "1d";
+            case WEEK -> "1w";
+            default -> throw new IllegalStateException(
+                    "PERCENTILE_CONT groups time with FLOOR(\"timestamp\" TO SECOND|MINUTE|HOUR|DAY|WEEK). "
+                            + unit + " is not a fixed PromQL duration.");
+        };
+    }
+
+    private static String spanWindow(Long start, Long end) {
+        long endMillis = end != null ? end : System.currentTimeMillis();
+        long startMillis = start != null ? start : endMillis - PrometheusTable.DEFAULT_RANGE_MILLIS;
+        long duration = Math.max(1L, endMillis - startMillis);
+        String window = PrometheusSqlOperatorTable.promqlSpan(duration);
+        return window == null ? "15m" : window;
     }
 
     private static String phiOf(LogicalAggregate aggregate, AggregateCall call) {
@@ -283,7 +460,10 @@ public class PrometheusQuantilePushDownRule extends RelRule<RelRule.Config> {
             String column = scan.getRowType().getFieldNames().get(target.column);
             throw new IllegalStateException(
                     "PERCENTILE_CONT cannot apply " + operatorOf(conjunct, bit) + " to " + column
-                            + " because histogram_quantile does not return that column");
+                            + " because histogram_quantile does not return that column.\n"
+                            + "Drop that comparison. ORDER BY le marks the bucket:\n"
+                            + "SELECT PERCENTILE_CONT(phi) WITHIN GROUP (ORDER BY le)\n"
+                            + "FROM " + scan.getPrometheusTable().metric());
         }
     }
 
@@ -492,23 +672,29 @@ public class PrometheusQuantilePushDownRule extends RelRule<RelRule.Config> {
         private final List<String> sumBy;
         private final String rateWindow;
         private final int valueIndex;
+        private final boolean collapse;
+        private final String step;
 
         private Quantile(AggregateCall call,
                          PrometheusTableScan scan,
                          String phi,
                          List<String> sumBy,
                          String rateWindow,
-                         int valueIndex) {
+                         int valueIndex,
+                         boolean collapse,
+                         String step) {
             this.call = call;
             this.scan = scan;
             this.phi = phi;
             this.sumBy = sumBy;
             this.rateWindow = rateWindow;
             this.valueIndex = valueIndex;
+            this.collapse = collapse;
+            this.step = step;
         }
 
         private Quantile withValueIndex(int valueIndex) {
-            return new Quantile(call, scan, phi, sumBy, rateWindow, valueIndex);
+            return new Quantile(call, scan, phi, sumBy, rateWindow, valueIndex, collapse, step);
         }
     }
 

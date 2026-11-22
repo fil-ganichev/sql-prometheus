@@ -1,0 +1,9 @@
+PROM_RATE("value", '5m') on operation_code_total cannot push this label condition into a Prometheus selector.
+code = 'ERROR' OR process_action = 'getOrder'
+SELECT PROM_RATE("value", '5m') AS v, code, process_action
+FROM operation_code_total
+WHERE code = 'ERROR'
+UNION
+SELECT PROM_RATE("value", '5m') AS v, code, process_action
+FROM operation_code_total
+WHERE process_action = 'getOrder'

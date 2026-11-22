@@ -1,0 +1,1 @@
+Label code filters operation_time_seconds_count, while PROM_RATE is computed on operation_code_total. Move the comparison onto operation_code_total, the metric of the function: WHERE code = 'ERROR'.

@@ -102,8 +102,13 @@ public class PrometheusFilterRule extends RelRule<RelRule.Config> {
             return false;
         }
         int index = refSide.ref.getIndex();
-        if (call.getKind() == SqlKind.EQUALS && index >= 2 && isChar(literalSide.literal)) {
-            labels.put(names.get(index), RexLiteral.stringValue(literalSide.literal));
+        if (index >= 2 && isChar(literalSide.literal)
+                && (call.getKind() == SqlKind.EQUALS || call.getKind() == SqlKind.NOT_EQUALS)) {
+            String value = RexLiteral.stringValue(literalSide.literal);
+            if (call.getKind() == SqlKind.NOT_EQUALS) {
+                value = "!=" + value;
+            }
+            labels.put(names.get(index), value);
             return true;
         }
         return false;
